@@ -258,3 +258,64 @@ describe("the Hoarder Strategy", () => {
     }
   });
 });
+
+describe("the Clever Hoarder Strategy", () => {
+  it("rejects a Move that settles more for the Opponent than for the Mover, where Hoarder takes it", () => {
+    // Red's 3→0 settles the most for Red, but more again for Blue; 3→9 increases Red's Settled margin the most.
+    const game = play([19, 6], [4, 12], [1, 5], [2, 14]);
+
+    expect(key(chooseMove(game, "hoarder", always(0)))).toBe("3→0");
+    expect(key(chooseMove(game, "clever-hoarder", always(0)))).toBe("3→9");
+  });
+
+  it("picks the candidate leaving the largest Settled margin, over one that also increases it and scores more", () => {
+    // 8→10 and 6→10 both settle area for Red alone; 6→10 scores more, but 8→10 settles more.
+    const game = play([14, 9]);
+
+    expect(scoreAfter(game, { start: 6, end: 10 })).toBeGreaterThan(scoreAfter(game, { start: 8, end: 10 }));
+    expect(key(chooseMove(game, "clever-hoarder", always(0)))).toBe("8→10");
+  });
+
+  it("breaks ties on Settled margin by Score, then using the random source", () => {
+    // Blue's corners around the used Points each increase its Settled margin alike; 8→10 and 11→13 score the most.
+    const game = play([0, 9], [3, 12], [6, 15]);
+    const values = [0, 0.25, 0.5, 0.75, 1 - Number.EPSILON];
+    const chosen = new Set(values.map((value) => key(chooseMove(game, "clever-hoarder", always(value)))));
+
+    expect([...chosen].sort()).toEqual(["11→13", "8→10"]);
+  });
+
+  it("plays as Greedy when no Move increases its Settled margin", () => {
+    // From a fresh game nothing can be settled. In the later position some Moves settle area for Red,
+    // so the Hoarder takes one, but none settles more for Red than for Blue.
+    const later = play([7, 0], [18, 9], [5, 12], [4, 14], [13, 3], [11, 19], [8, 16], [1, 17]);
+    expect(key(chooseMove(later, "hoarder", always(0)))).toBe("10→15");
+
+    for (const game of [createGame("award"), later]) {
+      for (const value of [0, 0.25, 0.5, 0.75, 1 - Number.EPSILON]) {
+        expect(chooseMove(game, "clever-hoarder", always(value))).toEqual(chooseMove(game, "greedy", always(value)));
+      }
+    }
+  });
+
+  it("counts the Award a game-ending Move triggers, once every Region is Settled", () => {
+    // As for the Hoarder, but under Award 9→5 leaves Red the largest margin.
+    const moves: [number, number][] = [[13, 11], [14, 0], [17, 12], [15, 1], [8, 18], [19, 2], [4, 6], [7, 3]];
+
+    expect(key(chooseMove(playWith("award", ...moves), "clever-hoarder", always(0)))).toBe("9→5");
+    expect(key(chooseMove(playWith("skip", ...moves), "clever-hoarder", always(0)))).toBe("16→5");
+  });
+
+  it("always returns a legal Move under both Endings, to Game over", () => {
+    for (const ending of ["award", "skip"] as const) {
+      for (const value of [0, 0.5, 1 - Number.EPSILON]) {
+        let game = createGame(ending);
+        while (game.outcome === "in-progress") {
+          const move = chooseMove(game, "clever-hoarder", always(value));
+          expect(isLegalMove(game, move)).toBe(true);
+          game = applyMove(game, move);
+        }
+      }
+    }
+  });
+});

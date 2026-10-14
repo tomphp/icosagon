@@ -6,7 +6,7 @@ import { loadModel } from "../src/model.ts";
 import { match } from "../src/training.ts";
 
 const usage = `Usage: npm run match -- PARTICIPANT PARTICIPANT... [--games 10] [--seed N]
-  where each PARTICIPANT is a Model file, greedy, hoarder or random`;
+  where each PARTICIPANT is a Model file, greedy, hoarder, clever-hoarder or random`;
 
 /** Prints the problem and the usage, and exits. */
 function fail(problem: string): never {
@@ -21,14 +21,14 @@ function wholeFlag(name: string, value: string | undefined, fallback: number, mi
   return parsed;
 }
 
-/** The participant's name and Strategy; exits if it is not greedy, hoarder, random or a readable, compatible Model. */
+/** The participant's name and Strategy; exits if it is not greedy, hoarder, clever-hoarder, random or a readable, compatible Model. */
 function participant(arg: string): { name: string; strategy: Strategy } {
-  if (arg === "greedy" || arg === "hoarder" || arg === "random") return { name: arg, strategy: arg };
+  if (arg === "greedy" || arg === "hoarder" || arg === "clever-hoarder" || arg === "random") return { name: arg, strategy: arg };
   try {
     const model = loadModel(JSON.parse(readFileSync(arg, "utf8")));
     return { name: basename(arg, ".json"), strategy: { kind: "neural", model } };
   } catch (error) {
-    fail(`${arg} is not greedy, hoarder, random or a readable, compatible Model: ${(error as Error).message}`);
+    fail(`${arg} is not greedy, hoarder, clever-hoarder, random or a readable, compatible Model: ${(error as Error).message}`);
   }
 }
 

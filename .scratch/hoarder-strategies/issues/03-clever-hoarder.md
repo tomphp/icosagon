@@ -1,6 +1,6 @@
 # 03: Clever Hoarder
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** The Clever Hoarder Strategy, all the way through. It works like Hoarder but measures the **Settled margin**, the Mover's Settled area minus the Opponent's.
 
@@ -15,12 +15,17 @@ See `.scratch/hoarder-strategies/spec.md`.
 
 **Blocked by:** 02 (Hoarder), whose Settled-area rule it reuses.
 
-- [ ] Clever Hoarder rejects a Move that settles more for the Opponent than for the Mover, in a position where Hoarder takes it
-- [ ] Clever Hoarder picks the candidate leaving the largest Settled margin
-- [ ] Ties go to the higher Score, then follow the random source
-- [ ] With no candidates, Clever Hoarder chooses exactly as Greedy does
-- [ ] Clever Hoarder always returns a legal Move under both Endings
-- [ ] Clever Hoarder can be picked in the page's Strategy selector and plays legal Moves (browser test)
-- [ ] `match` accepts `clever-hoarder`
-- [ ] Each Generation and the final report include Clever Hoarder
-- [ ] README updated
+- [x] Clever Hoarder rejects a Move that settles more for the Opponent than for the Mover, in a position where Hoarder takes it
+- [x] Clever Hoarder picks the candidate leaving the largest Settled margin
+- [x] Ties go to the higher Score, then follow the random source
+- [x] With no candidates, Clever Hoarder chooses exactly as Greedy does
+- [x] Clever Hoarder always returns a legal Move under both Endings
+- [x] Clever Hoarder can be picked in the page's Strategy selector and plays legal Moves (browser test)
+- [x] `match` accepts `clever-hoarder`
+- [x] Each Generation and the final report include Clever Hoarder
+- [x] README updated
+
+## Comments
+
+- Hoarder and Clever Hoarder share one chooser that falls back to Greedy itself; they differ only in what they measure. Settled area is now worked out for both Players in one pass, so the margin costs no more than Hoarder's own area.
+- The Greedy-fallback test also uses a position where some Moves settle area for the Mover (so Hoarder takes one) but none raises the margin, so the Clever-specific case is covered, not just the fresh Board.

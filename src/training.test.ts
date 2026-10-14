@@ -3,7 +3,7 @@ import type { Strategy } from "./computer.ts";
 import { loadModel, saveModel, type Model } from "./model.ts";
 import { match, train, type Progress, type TrainingOptions } from "./training.ts";
 
-// Training plays the Hoarder, whose games are slow, so these tests need longer than the default.
+// Training plays the Hoarders, whose games are slow, so these tests need longer than the default.
 vi.setConfig({ testTimeout: 30_000 });
 
 /** Tiny settings so Training takes moments: 4 networks, 2 Generations, 2 hidden units, 1 survivor, 4 report games. */
@@ -75,13 +75,13 @@ describe("Training", () => {
   });
 
   it("plays the round-robin under both colours and both Endings plus 4 games per network against each scripted opponent", () => {
-    // 6 pairs × 4 games + 4 networks × 4 games against each of the 2 scripted opponents.
-    for (const { games } of progress) expect(games).toBe(6 * 4 + 4 * 4 * 2);
+    // 6 pairs × 4 games + 4 networks × 4 games against each of the 3 scripted opponents.
+    for (const { games } of progress) expect(games).toBe(6 * 4 + 4 * 4 * 3);
   });
 
   it("reports the Population's average margin against each scripted opponent, which the round-robin games don't affect", () => {
     for (const { ranked, margins } of progress) {
-      expect(Object.keys(margins)).toEqual(["greedy", "hoarder"]);
+      expect(Object.keys(margins)).toEqual(["greedy", "hoarder", "clever-hoarder"]);
       // The round-robin margins cancel out. Each network plays 4 games against each of the 3 others and each scripted opponent.
       const scripted = Object.values(margins);
       const gamesPerNetwork = 3 * 4 + 4 * scripted.length;
@@ -161,8 +161,8 @@ describe("Stopping Training early", () => {
 });
 
 describe("Training's final report", () => {
-  it("plays the best network against Greedy, Hoarder and Random, its counts adding up to the games played", () => {
-    expect(Object.keys(model.report!)).toEqual(["greedy", "hoarder", "random"]);
+  it("plays the best network against Greedy, Hoarder, Clever Hoarder and Random, its counts adding up to the games played", () => {
+    expect(Object.keys(model.report!)).toEqual(["greedy", "hoarder", "clever-hoarder", "random"]);
     for (const results of Object.values(model.report!)) {
       expect(results.wins + results.draws + results.losses).toBe(4);
       expect(Math.abs(results.margin)).toBeLessThanOrEqual(1);

@@ -87,7 +87,7 @@ const ENDINGS: Ending[] = ["award", "skip"];
 const nextSeed = (random: Random) => random() * 2 ** 32;
 
 /** The scripted Strategies every network plays in each Generation, in the order they follow the Population. */
-const SCRIPTED: NamedStrategy[] = ["greedy", "hoarder"];
+const SCRIPTED: NamedStrategy[] = ["greedy", "hoarder", "clever-hoarder"];
 
 /** The opponents in Training's final report: the scripted ones, then Random. */
 const REPORTED: NamedStrategy[] = [...SCRIPTED, "random"];

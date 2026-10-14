@@ -271,11 +271,22 @@ describe("the Hoarder on the page", () => {
   it("plays only legal Moves against the Human to Game over", () => playToGameOver({ value: "hoarder", label: "Hoarder" }));
 });
 
+describe("the Clever Hoarder on the page", () => {
+  it("is offered after the Hoarder", async () => {
+    const page = await openPage([HUMAN_RED]);
+
+    expect((await optionTexts(page, "#strategy")).slice(0, 4)).toEqual(["Random", "Greedy", "Hoarder", "Clever Hoarder"]);
+  });
+
+  it("plays only legal Moves against the Human to Game over", () =>
+    playToGameOver({ value: "clever-hoarder", label: "Clever Hoarder" }));
+});
+
 describe("a Neural Model on the page", () => {
   it("is offered after the named Strategies, with Greedy still the default", async () => {
     const page = await openPage([HUMAN_RED]);
 
-    expect(await optionTexts(page, "#strategy")).toEqual(["Random", "Greedy", "Hoarder", FIXTURE.label]);
+    expect(await optionTexts(page, "#strategy")).toEqual(["Random", "Greedy", "Hoarder", "Clever Hoarder", FIXTURE.label]);
     expect(await selectedText(page, "#strategy")).toBe("Greedy");
   });
 
