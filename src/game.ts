@@ -68,9 +68,14 @@ function assertLegal(game: Game, move: Move) {
   if (!isLegalMove(game, move)) throw new Error(`Illegal Move ${move.start}→${move.end}`);
 }
 
+/** The colour the right side of a Split Region takes under the game's Rule set. */
+function rightSideColour(game: Game, region: Region): Player {
+  const opponent = opponentOf(game.mover);
+  return game.ruleSet === "claim" ? (region.colour ?? opponent) : opponent;
+}
+
 /** The Regions after the Mover's Line Splits every Region it passes through. */
 function splitRegions(game: Game, move: Move): Region[] {
-  const opponent = opponentOf(game.mover);
   const a = pointPosition(move.start);
   const b = pointPosition(move.end);
 
@@ -79,7 +84,7 @@ function splitRegions(game: Game, move: Move): Region[] {
     if (!halves) return [region];
     return [
       { polygon: halves.left, colour: game.mover },
-      { polygon: halves.right, colour: opponent },
+      { polygon: halves.right, colour: rightSideColour(game, region) },
     ];
   });
 }

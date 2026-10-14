@@ -51,3 +51,12 @@ export function text(page: Page, selector: string) {
 export function isVisible(page: Page, selector: string) {
   return page.$eval(selector, (el) => (el as HTMLElement).offsetParent !== null);
 }
+
+/** The text of a select's chosen option. */
+export function selectedText(page: Page, selector: string) {
+  return page.$eval(selector, (el) => (el as HTMLSelectElement).selectedOptions[0].text);
+}
+
+export function isDisabled(page: Page, selector: string) {
+  return page.$eval(selector, (el) => (el as HTMLSelectElement).disabled);
+}

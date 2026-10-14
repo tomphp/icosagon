@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMove, createGame, isLegalMove, previewMove, type Game } from "./game";
+import { applyMove, createGame, isLegalMove, previewMove, type Game, type RuleSet } from "./game";
 
 describe("a fresh game", () => {
   it("has one uncoloured Region, Red to move and Scores of 0/0", () => {
@@ -94,17 +94,23 @@ describe("applying an illegal Move", () => {
 });
 
 /**
- * Plays Moves written as [start, end] pairs from a fresh Full split game, returning the game
- * before any Move and after each one.
+ * Plays Moves written as [start, end] pairs from a fresh game under the Rule set, returning the
+ * game before any Move and after each one.
  */
-function playEach(...moves: [number, number][]) {
-  const games = [createGame("full-split")];
+function playEachUnder(ruleSet: RuleSet, ...moves: [number, number][]) {
+  const games = [createGame(ruleSet)];
   for (const [start, end] of moves) games.push(applyMove(games[games.length - 1], { start, end }));
   return games;
 }
 
-/** The game after playing all the Moves. */
+/** Plays Moves from a fresh Full split game, returning the game before any Move and after each one. */
+const playEach = (...moves: [number, number][]) => playEachUnder("full-split", ...moves);
+
+/** The game after playing all the Moves under Full split. */
 const play = (...moves: [number, number][]) => playEach(...moves).at(-1)!;
+
+/** The game after playing all the Moves under Claim. */
+const playClaim = (...moves: [number, number][]) => playEachUnder("claim", ...moves).at(-1)!;
 
 describe("turns", () => {
   it("alternate Red, Blue, Red, …", () => {
@@ -162,11 +168,11 @@ describe("total coloured area", () => {
   });
 });
 
-describe("the end of the game", () => {
-  const blueWinsGame: [number, number][] = [
-    [0, 10], [5, 15], [2, 12], [7, 17], [1, 4], [3, 9], [6, 13], [8, 18], [11, 16], [14, 19],
-  ];
+const blueWinsGame: [number, number][] = [
+  [0, 10], [5, 15], [2, 12], [7, 17], [1, 4], [3, 9], [6, 13], [8, 18], [11, 16], [14, 19],
+];
 
+describe("the end of the game", () => {
   it("is in progress until the 10th Move", () => {
     const games = playEach(...blueWinsGame);
     for (const game of games.slice(0, 10)) expect(game.outcome).toBe("in-progress");
@@ -203,5 +209,39 @@ describe("a preview", () => {
 
     expect(preview).toEqual(applyMove(game, { start: 2, end: 12 }).regions);
     expect(game).toEqual(before);
+  });
+});
+
+describe("the Claim Rule set", () => {
+  it("is the game's Rule set when created with it", () => {
+    expect(createGame("claim").ruleSet).toBe("claim");
+  });
+
+  it("gives the right side of the first Split to the Opponent", () => {
+    const game = playClaim([0, 10]);
+
+    expect(colourNear(game, 5)).toBe("red");
+    expect(colourNear(game, 15)).toBe("blue");
+  });
+
+  it("lets the right side of a later Split keep its previous colour", () => {
+    // Blue draws 5→15: its left side, the bottom half, becomes Blue. The right side, the top
+    // half, keeps its colours: Red on the top right, Blue on the top left.
+    const game = playClaim([0, 10], [5, 15]);
+
+    expect(colourNear(game, 2)).toBe("red"); // top right
+    expect(colourNear(game, 18)).toBe("blue"); // top left
+    expect(colourNear(game, 8)).toBe("blue"); // bottom right
+    expect(colourNear(game, 12)).toBe("blue"); // bottom left
+    expect(game.scores.red).toBeCloseTo(0.25);
+    expect(game.scores.blue).toBeCloseTo(0.75);
+  });
+
+  it("gives different Scores from Full split for the same scripted game", () => {
+    const fullSplit = play(...blueWinsGame);
+    const claim = playClaim(...blueWinsGame);
+
+    expect(claim.scores.red).not.toBeCloseTo(fullSplit.scores.red, 3);
+    expect(claim.scores.red + claim.scores.blue).toBeCloseTo(1, 9);
   });
 });

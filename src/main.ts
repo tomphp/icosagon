@@ -1,4 +1,4 @@
-import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Game, type Outcome, type Player } from "./game";
+import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Game, type Outcome, type Player, type RuleSet } from "./game";
 import { attachInput } from "./input";
 import { boardLayout } from "./layout";
 import { render, type DragView } from "./render";
@@ -10,10 +10,13 @@ const scoreBlue = document.querySelector("#score-blue")!;
 const turn = document.querySelector("#turn")!;
 const result = document.querySelector<HTMLElement>("#result")!;
 const newGame = document.querySelector("#new-game")!;
+const ruleSetSelect = document.querySelector<HTMLSelectElement>("#rule-set")!;
+/** The Rule set chosen in the selector; its option values are the RuleSet names. */
+const selectedRuleSet = () => ruleSetSelect.value as RuleSet;
 
 const layout = () => boardLayout(canvas.width, canvas.height);
 
-let game: Game = createGame("full-split");
+let game: Game = createGame(selectedRuleSet());
 let drag: DragView | null = null;
 
 const NAME: Record<Player, string> = { red: "Red", blue: "Blue" };
@@ -30,6 +33,8 @@ function update() {
   const blue = `Blue ${percent(game.scores.blue)}`;
   scoreRed.textContent = red;
   scoreBlue.textContent = blue;
+  // The Rule set is fixed once the first Line is drawn.
+  ruleSetSelect.disabled = game.moves.length > 0;
   if (game.outcome === "in-progress") {
     turn.textContent = `${NAME[game.mover]} to move`;
     result.hidden = true;
@@ -39,6 +44,11 @@ function update() {
     result.hidden = false;
   }
 }
+
+ruleSetSelect.addEventListener("change", () => {
+  game = createGame(selectedRuleSet());
+  update();
+});
 
 newGame.addEventListener("click", () => {
   game = createGame(game.ruleSet);

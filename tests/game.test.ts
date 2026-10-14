@@ -1,12 +1,16 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
-import type { Browser } from "puppeteer-core";
-import { canvasImage, drag, hold, isVisible, launch, text } from "./page";
+import type { Browser, Page } from "puppeteer-core";
+import { canvasImage, drag, hold, isDisabled, isVisible, launch, selectedText, text } from "./page";
 
 let browser: Browser;
 beforeAll(async () => {
   browser = await launch();
 });
 afterAll(() => browser?.close());
+
+const blueWinsGame: [number, number][] = [
+  [0, 10], [5, 15], [2, 12], [7, 17], [1, 4], [3, 9], [6, 13], [8, 18], [11, 16], [14, 19],
+];
 
 describe("playing on the page", () => {
   it("one drag across a diameter Splits the Board 50% / 50%", async () => {
@@ -48,9 +52,6 @@ describe("taking turns on the page", () => {
 });
 
 describe("the end of a game on the page", () => {
-  const blueWinsGame: [number, number][] = [
-    [0, 10], [5, 15], [2, 12], [7, 17], [1, 4], [3, 9], [6, 13], [8, 18], [11, 16], [14, 19],
-  ];
 
   it("announces the result after the 10th Move, locks the Board, and New game resets it", async () => {
     const page = await browser.newPage();
@@ -125,5 +126,33 @@ describe("invalid drags on the page", () => {
 
     await drag(page, 1, 4);
     await expectState("Blue to move", "Red 26.9%", "Blue 73.1%");
+  });
+});
+
+describe("the Rule set on the page", () => {
+  const ruleSet = (page: Page) => selectedText(page, "#rule-set");
+  const isLocked = (page: Page) => isDisabled(page, "#rule-set");
+
+  it("can be chosen before the first Move, locks after it, and unlocks on New game", async () => {
+    const page = await browser.newPage();
+    await page.goto(inject("baseUrl"));
+    expect(await ruleSet(page)).toBe("Full split");
+    expect(await isLocked(page)).toBe(false);
+
+    await page.select("#rule-set", "claim");
+    expect(await ruleSet(page)).toBe("Claim");
+
+    await drag(page, 0, 10);
+    expect(await isLocked(page)).toBe(true);
+    expect(await ruleSet(page)).toBe("Claim");
+
+    for (const [start, end] of blueWinsGame.slice(1)) await drag(page, start, end);
+    // The same Moves as the Full split game, which ends 46.8% / 53.2%.
+    expect(await text(page, "#result")).toBe("Blue wins: Red 43.0%, Blue 57.0%");
+    expect(await isLocked(page)).toBe(true);
+
+    await page.click("#new-game");
+    expect(await isLocked(page)).toBe(false);
+    expect(await ruleSet(page)).toBe("Claim");
   });
 });
