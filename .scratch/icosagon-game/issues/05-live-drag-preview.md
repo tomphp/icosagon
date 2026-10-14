@@ -8,7 +8,7 @@ See `.scratch/icosagon-game/spec.md` and `CONTEXT.md`.
 
 **Blocked by:** 01 (Tracer bullet: draw one Line).
 
-- [ ] The in-progress Line follows the pointer during a drag
-- [ ] The colour preview appears only while snapped to a legal end Point
-- [ ] Moving off a legal Point clears the preview
-- [ ] Unit test: a preview returns the same Regions as applying the Move, and the game state is unchanged afterwards
+- [x] The in-progress Line follows the pointer during a drag
+- [x] The colour preview appears only while snapped to a legal end Point
+- [x] Moving off a legal Point clears the preview
+- [x] Unit test: a preview returns the same Regions as applying the Move, and the game state is unchanged afterwards

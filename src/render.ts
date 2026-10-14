@@ -1,11 +1,13 @@
 import { POINT_COUNT, type Vec } from "./geometry";
-import { usedPoints, type Game, type Player } from "./game";
+import { usedPoints, type Game, type Player, type Region } from "./game";
 import { pointOnScreen, toScreen, type Layout } from "./layout";
 
 export interface DragView {
   start: number;
   pointer: Vec;
   snapped: number | null;
+  /** The Regions releasing on the snapped Point would produce, or null when not snapped. */
+  preview: Region[] | null;
 }
 
 const FILL: Record<Player, string> = { red: "#e5484d", blue: "#3e63dd" };
@@ -16,7 +18,7 @@ export function render(ctx: CanvasRenderingContext2D, layout: Layout, game: Game
   const { width, height } = ctx.canvas;
   ctx.clearRect(0, 0, width, height);
 
-  for (const region of game.regions) {
+  for (const region of drag?.preview ?? game.regions) {
     ctx.beginPath();
     region.polygon.forEach((p, i) => {
       const s = toScreen(layout, p);

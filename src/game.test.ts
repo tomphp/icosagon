@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMove, createGame, isLegalMove, type Game } from "./game";
+import { applyMove, createGame, isLegalMove, previewMove, type Game } from "./game";
 
 describe("a fresh game", () => {
   it("has one uncoloured Region, Red to move and Scores of 0/0", () => {
@@ -191,5 +191,17 @@ describe("the end of the game", () => {
 
     expect(isLegalMove(game, { start: 0, end: 10 })).toBe(false);
     expect(() => applyMove(game, { start: 0, end: 10 })).toThrow();
+  });
+});
+
+describe("a preview", () => {
+  it("returns the same Regions as applying the Move, and leaves the game unchanged", () => {
+    const game = play([0, 10], [5, 15]);
+    const before = structuredClone(game);
+
+    const preview = previewMove(game, { start: 2, end: 12 });
+
+    expect(preview).toEqual(applyMove(game, { start: 2, end: 12 }).regions);
+    expect(game).toEqual(before);
   });
 });

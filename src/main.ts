@@ -1,4 +1,4 @@
-import { applyMove, createGame, isLegalMove, usedPoints, type Game, type Outcome, type Player } from "./game";
+import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Game, type Outcome, type Player } from "./game";
 import { attachInput } from "./input";
 import { boardLayout } from "./layout";
 import { render, type DragView } from "./render";
@@ -50,7 +50,8 @@ attachInput(canvas, layout, {
   canStartAt: (point) => !usedPoints(game).has(point),
   canEndAt: (start, point) => isLegalMove(game, { start, end: point }),
   dragMoved(start, pointer, snapped) {
-    drag = { start, pointer, snapped };
+    const preview = snapped === null ? null : previewMove(game, { start, end: snapped });
+    drag = { start, pointer, snapped, preview };
     update();
   },
   dragReleased(start, end) {

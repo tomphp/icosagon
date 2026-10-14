@@ -64,29 +64,42 @@ function outcomeOf(moveCount: number, scores: Scores): Outcome {
   return scores.red > scores.blue ? "red-wins" : "blue-wins";
 }
 
-export function applyMove(game: Game, move: Move): Game {
+function assertLegal(game: Game, move: Move) {
   if (!isLegalMove(game, move)) throw new Error(`Illegal Move ${move.start}→${move.end}`);
-  const mover = game.mover;
-  const opponent = opponentOf(mover);
+}
+
+/** The Regions after the Mover's Line Splits every Region it passes through. */
+function splitRegions(game: Game, move: Move): Region[] {
+  const opponent = opponentOf(game.mover);
   const a = pointPosition(move.start);
   const b = pointPosition(move.end);
 
-  const regions = game.regions.flatMap((region): Region[] => {
+  return game.regions.flatMap((region): Region[] => {
     const halves = splitPolygon(region.polygon, a, b);
     if (!halves) return [region];
     return [
-      { polygon: halves.left, colour: mover },
+      { polygon: halves.left, colour: game.mover },
       { polygon: halves.right, colour: opponent },
     ];
   });
+}
 
+/** The Regions that applying the Move would produce, without changing the game. */
+export function previewMove(game: Game, move: Move): Region[] {
+  assertLegal(game, move);
+  return splitRegions(game, move);
+}
+
+export function applyMove(game: Game, move: Move): Game {
+  assertLegal(game, move);
+  const regions = splitRegions(game, move);
   const moves = [...game.moves, move];
   const scores = scoresOf(regions);
   return {
     ...game,
     regions,
     moves,
-    mover: opponent,
+    mover: opponentOf(game.mover),
     scores,
     outcome: outcomeOf(moves.length, scores),
   };
