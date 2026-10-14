@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser } from "puppeteer-core";
-import { drag, launch, text } from "./page";
+import { drag, isVisible, launch, text } from "./page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -44,5 +44,36 @@ describe("taking turns on the page", () => {
     expect(await text(page, "#turn")).toBe("Blue to move");
     expect(await text(page, "#score-red")).toBe("Red 26.9%");
     expect(await text(page, "#score-blue")).toBe("Blue 73.1%");
+  });
+});
+
+describe("the end of a game on the page", () => {
+  const blueWinsGame: [number, number][] = [
+    [0, 10], [5, 15], [2, 12], [7, 17], [1, 4], [3, 9], [6, 13], [8, 18], [11, 16], [14, 19],
+  ];
+
+  it("announces the result after the 10th Move, locks the Board, and New game resets it", async () => {
+    const page = await browser.newPage();
+    await page.goto(inject("baseUrl"));
+    expect(await isVisible(page, "#result")).toBe(false);
+
+    for (const [start, end] of blueWinsGame) await drag(page, start, end);
+
+    expect(await isVisible(page, "#result")).toBe(true);
+    expect(await text(page, "#result")).toBe("Blue wins: Red 46.8%, Blue 53.2%");
+
+    // Every Point is used, so no drag can start; the finished Board stays as it was.
+    await drag(page, 0, 10);
+    expect(await text(page, "#score-red")).toBe("Red 46.8%");
+    expect(await text(page, "#score-blue")).toBe("Blue 53.2%");
+
+    await page.click("#new-game");
+    expect(await isVisible(page, "#result")).toBe(false);
+    expect(await text(page, "#turn")).toBe("Red to move");
+    expect(await text(page, "#score-red")).toBe("Red 0.0%");
+    expect(await text(page, "#score-blue")).toBe("Blue 0.0%");
+
+    await drag(page, 0, 10);
+    expect(await text(page, "#score-red")).toBe("Red 50.0%");
   });
 });

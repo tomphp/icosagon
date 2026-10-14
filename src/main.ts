@@ -1,4 +1,4 @@
-import { applyMove, createGame, isLegalMove, usedPoints, type Game, type Player } from "./game";
+import { applyMove, createGame, isLegalMove, usedPoints, type Game, type Outcome, type Player } from "./game";
 import { attachInput } from "./input";
 import { boardLayout } from "./layout";
 import { render, type DragView } from "./render";
@@ -8,6 +8,8 @@ const ctx = canvas.getContext("2d")!;
 const scoreRed = document.querySelector("#score-red")!;
 const scoreBlue = document.querySelector("#score-blue")!;
 const turn = document.querySelector("#turn")!;
+const result = document.querySelector<HTMLElement>("#result")!;
+const newGame = document.querySelector("#new-game")!;
 
 const layout = () => boardLayout(canvas.width, canvas.height);
 
@@ -15,14 +17,34 @@ let game: Game = createGame("full-split");
 let drag: DragView | null = null;
 
 const NAME: Record<Player, string> = { red: "Red", blue: "Blue" };
+const RESULT: Record<Exclude<Outcome, "in-progress">, string> = {
+  "red-wins": "Red wins",
+  "blue-wins": "Blue wins",
+  draw: "Draw",
+};
 const percent = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
 
 function update() {
   render(ctx, layout(), game, drag);
-  scoreRed.textContent = `Red ${percent(game.scores.red)}`;
-  scoreBlue.textContent = `Blue ${percent(game.scores.blue)}`;
-  turn.textContent = `${NAME[game.mover]} to move`;
+  const red = `Red ${percent(game.scores.red)}`;
+  const blue = `Blue ${percent(game.scores.blue)}`;
+  scoreRed.textContent = red;
+  scoreBlue.textContent = blue;
+  if (game.outcome === "in-progress") {
+    turn.textContent = `${NAME[game.mover]} to move`;
+    result.hidden = true;
+  } else {
+    turn.textContent = "Game over";
+    result.textContent = `${RESULT[game.outcome]}: ${red}, ${blue}`;
+    result.hidden = false;
+  }
 }
+
+newGame.addEventListener("click", () => {
+  game = createGame(game.ruleSet);
+  drag = null;
+  update();
+});
 
 attachInput(canvas, layout, {
   canStartAt: (point) => !usedPoints(game).has(point),

@@ -2,6 +2,7 @@ import { POINT_COUNT, boardPolygon, pointPosition, polygonArea, splitPolygon, ty
 
 export type Player = "red" | "blue";
 export type RuleSet = "full-split" | "claim";
+export type Outcome = "in-progress" | "red-wins" | "blue-wins" | "draw";
 
 export interface Move {
   start: number;
@@ -25,6 +26,7 @@ export interface Game {
   moves: Move[];
   mover: Player;
   scores: Scores;
+  outcome: Outcome;
 }
 
 export function createGame(ruleSet: RuleSet): Game {
@@ -34,10 +36,15 @@ export function createGame(ruleSet: RuleSet): Game {
     moves: [],
     mover: "red",
     scores: { red: 0, blue: 0 },
+    outcome: "in-progress",
   };
 }
 
 const BOARD_AREA = polygonArea(boardPolygon());
+/** Every Point is used after this many Moves, and the game ends. */
+const MOVES_PER_GAME = POINT_COUNT / 2;
+/** Scores closer than this, relative to the Board's area, are a Draw. */
+const DRAW_TOLERANCE = 1e-9;
 
 function opponentOf(player: Player): Player {
   return player === "red" ? "blue" : "red";
@@ -49,6 +56,12 @@ function scoresOf(regions: Region[]): Scores {
     if (region.colour) scores[region.colour] += polygonArea(region.polygon) / BOARD_AREA;
   }
   return scores;
+}
+
+function outcomeOf(moveCount: number, scores: Scores): Outcome {
+  if (moveCount < MOVES_PER_GAME) return "in-progress";
+  if (Math.abs(scores.red - scores.blue) < DRAW_TOLERANCE) return "draw";
+  return scores.red > scores.blue ? "red-wins" : "blue-wins";
 }
 
 export function applyMove(game: Game, move: Move): Game {
@@ -67,12 +80,15 @@ export function applyMove(game: Game, move: Move): Game {
     ];
   });
 
+  const moves = [...game.moves, move];
+  const scores = scoresOf(regions);
   return {
     ...game,
     regions,
-    moves: [...game.moves, move],
+    moves,
     mover: opponent,
-    scores: scoresOf(regions),
+    scores,
+    outcome: outcomeOf(moves.length, scores),
   };
 }
 
@@ -82,6 +98,7 @@ export function usedPoints(game: Game): Set<number> {
 }
 
 export function isLegalMove(game: Game, move: Move): boolean {
+  if (game.outcome !== "in-progress") return false;
   const used = usedPoints(game);
   const gap = Math.abs(move.start - move.end);
   const adjacent = gap === 1 || gap === POINT_COUNT - 1;

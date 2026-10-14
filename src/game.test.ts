@@ -161,3 +161,35 @@ describe("total coloured area", () => {
     }
   });
 });
+
+describe("the end of the game", () => {
+  const blueWinsGame: [number, number][] = [
+    [0, 10], [5, 15], [2, 12], [7, 17], [1, 4], [3, 9], [6, 13], [8, 18], [11, 16], [14, 19],
+  ];
+
+  it("is in progress until the 10th Move", () => {
+    const games = playEach(...blueWinsGame);
+    for (const game of games.slice(0, 10)) expect(game.outcome).toBe("in-progress");
+  });
+
+  it("comes after 10 Moves, with the larger Score winning", () => {
+    const game = play(...blueWinsGame);
+
+    expect(game.outcome).toBe("blue-wins");
+    expect(game.scores.red).toBeCloseTo(0.4678, 4);
+    expect(game.scores.blue).toBeCloseTo(0.5322, 4);
+  });
+
+  it("is a Draw when the Scores are equal up to floating-point noise", () => {
+    const game = play([0, 10], [1, 11], [2, 12], [3, 13], [4, 14], [5, 15], [6, 16], [7, 17], [8, 18], [9, 19]);
+
+    expect(game.outcome).toBe("draw");
+  });
+
+  it("rejects any further Moves", () => {
+    const game = play(...blueWinsGame);
+
+    expect(isLegalMove(game, { start: 0, end: 10 })).toBe(false);
+    expect(() => applyMove(game, { start: 0, end: 10 })).toThrow();
+  });
+});

@@ -30,3 +30,7 @@ export async function drag(page: Page, start: number, end: number) {
 export function text(page: Page, selector: string) {
   return page.$eval(selector, (el) => el.textContent?.trim());
 }
+
+export function isVisible(page: Page, selector: string) {
+  return page.$eval(selector, (el) => (el as HTMLElement).offsetParent !== null);
+}

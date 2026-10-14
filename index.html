@@ -6,9 +6,10 @@
     <title>Icosagon</title>
     <style>
       body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 16px; }
-      #hud { display: flex; gap: 24px; font-size: 1.2rem; }
+      #hud { display: flex; gap: 24px; align-items: center; font-size: 1.2rem; }
       #score-red { color: #c62a2f; }
       #score-blue { color: #2f4eb8; }
+      #result { margin-top: 12px; font-size: 1.4rem; font-weight: bold; }
       canvas { touch-action: none; }
     </style>
   </head>
@@ -17,7 +18,9 @@
       <span id="turn"></span>
       <span id="score-red"></span>
       <span id="score-blue"></span>
+      <button id="new-game" type="button">New game</button>
     </div>
+    <div id="result" hidden></div>
     <canvas width="600" height="600"></canvas>
     <script type="module" src="/src/main.ts"></script>
   </body>

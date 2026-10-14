@@ -8,9 +8,9 @@ See `.scratch/icosagon-game/spec.md` and `CONTEXT.md`.
 
 **Blocked by:** 02 (Turns and Splitting several Regions).
 
-- [ ] The game module reports the outcome (in progress, red wins, blue wins, or Draw) once 10 Moves have been played, and rejects any further Moves
-- [ ] The result banner shows the outcome and final percentages as page text
-- [ ] The Board ignores drags after the game is over
-- [ ] New game resets the Board, the Scores and the turn
-- [ ] Unit test: a scripted 10-Move game (written as `start→end` Moves) reaches a known outcome and Scores
-- [ ] Browser test: the same scripted game played by real drags shows the expected banner, and New game resets the page
+- [x] The game module reports the outcome (in progress, red wins, blue wins, or Draw) once 10 Moves have been played, and rejects any further Moves
+- [x] The result banner shows the outcome and final percentages as page text
+- [x] The Board ignores drags after the game is over
+- [x] New game resets the Board, the Scores and the turn
+- [x] Unit test: a scripted 10-Move game (written as `start→end` Moves) reaches a known outcome and Scores
+- [x] Browser test: the same scripted game played by real drags shows the expected banner, and New game resets the page
