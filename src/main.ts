@@ -2,6 +2,7 @@ import { chooseMove, type Strategy } from "./computer";
 import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Ending, type Game, type Outcome, type Player } from "./game";
 import { attachInput } from "./input";
 import { boardLayout } from "./layout";
+import { neuralOptions } from "./model";
 import { render, type DragView } from "./render";
 
 const canvas = document.querySelector("canvas")!;
@@ -20,8 +21,12 @@ const strategySelect = document.querySelector<HTMLSelectElement>("#strategy")!;
 const selectors = [opponentSelect, strategySelect, endingSelect];
 /** The Ending chosen in the selector; its option values are the Ending names. */
 const selectedEnding = () => endingSelect.value as Ending;
-/** The Strategy chosen in the selector; its option values are the Strategy names. */
-const selectedStrategy = () => strategySelect.value as Strategy;
+/** Each Model in models/, bundled into the page and picked up live by the dev server, as a selector option. */
+const neural = neuralOptions(import.meta.glob("../models/*.json", { eager: true, import: "default" }), console.warn);
+for (const { value, label } of neural) strategySelect.add(new Option(label, value));
+/** The Strategy chosen in the selector: Random and Greedy options' values are their names. */
+const selectedStrategy = (): Strategy =>
+  neural.find(({ value }) => value === strategySelect.value)?.strategy ?? (strategySelect.value as Strategy);
 
 /** The canvas's side in CSS pixels, the units pointer events and the layout use. */
 let size = 0;

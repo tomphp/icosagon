@@ -62,10 +62,32 @@ The program controlling a Player, choosing each Move by its Strategy. In a game 
 _Avoid_: AI, bot, CPU
 
 **Strategy**:
-How the Computer chooses its Move. Either **Random** or **Greedy**.
+How the Computer chooses its Move. Either **Random**, **Greedy** or **Neural**.
 
 **Random**:
 The Strategy that picks uniformly among all legal Moves, counting `3→12` and `12→3` as different Moves.
 
 **Greedy**:
 The Strategy that picks the Move giving the Mover the highest Score once it is made, including any Award that ends the game. Ties are broken at random.
+
+**Neural**:
+The Strategy that picks the Move its Model rates best. Each Model is offered as its own Strategy (e.g. "Neural: gen-4").
+
+**Model**:
+A trained neural network, stored as a file, that the Neural Strategy plays with.
+_Avoid_: AI, bot, brain, weights file
+
+### Training
+
+**Training**:
+Producing a Model by evolving a Population over many Generations, with every game played by the Computer against itself.
+
+**Population**:
+The set of neural networks that evolve together. A Model holds a whole Population; the best one is the one that plays.
+
+**Generation**:
+One round of Training: every network in the Population plays every other, and Greedy, to earn its Fitness; the fittest survive unchanged and mutated copies of them replace the rest.
+_Avoid_: Using it for a saved Model file
+
+**Fitness**:
+How well a network did in a Generation: its average Score margin (its Score minus its Opponent's) at Game over across all its games.

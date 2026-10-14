@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { chooseMove } from "./computer";
+import { chooseMove, type Strategy } from "./computer";
 import { applyMove, createGame, isLegalMove, type Ending, type Game, type Move } from "./game";
 import { POINT_COUNT } from "./geometry";
+import { MODEL_VERSION, type Model } from "./model";
+import { INPUT, INPUT_SIZE, type Network } from "./network";
 
 /** The game after playing Moves written as [start, end] pairs from a fresh game with the Ending. */
 const playWith = (ending: Ending, ...moves: [number, number][]) =>
@@ -109,5 +111,81 @@ describe("the Greedy Strategy", () => {
       expect(used.has(start) || used.has(end)).toBe(false);
       expect([1, 19]).not.toContain(Math.abs(start - end));
     }
+  });
+});
+
+/** A Network that rates a position by the Score of the Player who has just moved, times `sign`. */
+function scoreNetwork(sign: number, hidden = 1): Network {
+  return {
+    hiddenWeights: Array.from({ length: hidden }, (_, h) =>
+      Array.from({ length: INPUT_SIZE }, (_, i) => (h === 0 && i === INPUT.ownScore ? 1 : 0)),
+    ),
+    hiddenBiases: Array(hidden).fill(0),
+    outputWeights: Array.from({ length: hidden }, (_, h) => (h === 0 ? sign : 0)),
+    outputBias: 0,
+  };
+}
+
+/** A Network that rates every position the same. */
+const flatNetwork = (): Network => scoreNetwork(0);
+
+const modelOf = (...population: Network[]): Model => ({
+  version: MODEL_VERSION,
+  shape: { inputs: INPUT_SIZE, hidden: 1 },
+  population,
+  seed: 1,
+  generations: 0,
+  parent: null,
+  report: null,
+});
+
+const neural = (...population: Network[]): Strategy => ({ kind: "neural", model: modelOf(...population) });
+
+describe("the Neural Strategy", () => {
+  const midGame = play([0, 10], [5, 15], [2, 12], [7, 17]);
+
+  it("returns a legal Move from fresh and mid-game positions under both Endings", () => {
+    const strategies = [neural(scoreNetwork(1)), neural(scoreNetwork(-1)), neural(flatNetwork())];
+    for (const ending of ["award", "skip"] as const) {
+      const games = [createGame(ending), playWith(ending, [0, 10], [5, 15], [2, 12], [7, 17])];
+      for (const game of games) {
+        for (const strategy of strategies) {
+          expect(isLegalMove(game, chooseMove(game, strategy, always(0.5)))).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("plays the Move its Network rates highest", () => {
+    for (const game of [createGame("award"), midGame]) {
+      const move = chooseMove(game, neural(scoreNetwork(1)), always(0));
+      expect(scoreAfter(game, move)).toBeCloseTo(bestScore(game), 9);
+    }
+  });
+
+  it("rates the position after any Award the Move triggers", () => {
+    // As for Greedy: under Award, 16→7 is best for Red once Blue's Award is counted; under Skip, 16→6.
+    const moves: [number, number][] = [[14, 17], [1, 5], [11, 19], [9, 0], [4, 12], [18, 2], [3, 10], [15, 13]];
+    const strategy = neural(scoreNetwork(1));
+
+    expect(key(chooseMove(playWith("award", ...moves), strategy, always(0)))).toBe("16→7");
+    expect(key(chooseMove(playWith("skip", ...moves), strategy, always(0)))).toBe("16→6");
+  });
+
+  it("breaks exact ties using the random source", () => {
+    const game = createGame("award");
+    const values = [0, 0.25, 0.5, 0.75, 1 - Number.EPSILON];
+    const chosen = new Set(values.map((value) => key(chooseMove(game, neural(flatNetwork()), always(value)))));
+
+    expect(chosen.size).toBe(values.length);
+  });
+
+  it("plays with the first Network in the Population, the best", () => {
+    const game = midGame;
+    const best = chooseMove(game, neural(scoreNetwork(1), scoreNetwork(-1)), always(0));
+    const worst = chooseMove(game, neural(scoreNetwork(-1), scoreNetwork(1)), always(0));
+
+    expect(scoreAfter(game, best)).toBeCloseTo(bestScore(game), 9);
+    expect(scoreAfter(game, worst)).toBeLessThan(bestScore(game) - 0.01);
   });
 });

@@ -59,7 +59,7 @@ const DRAW_TOLERANCE = 1e-9;
 /** Vertices closer than this are the same Point. */
 const SAME_POINT = 1e-9;
 
-function opponentOf(player: Player): Player {
+export function opponentOf(player: Player): Player {
   return player === "red" ? "blue" : "red";
 }
 
