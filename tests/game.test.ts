@@ -36,15 +36,15 @@ describe("taking turns on the page", () => {
     await drag(page, 0, 10);
     expect(await text(page, "#turn")).toBe("Blue to move");
 
-    // Blue's crossing diameter: Red keeps the top half, Blue gets the bottom.
+    // Blue's crossing diameter takes the bottom half; Red keeps only the top-right quarter.
     await drag(page, 5, 15);
     expect(await text(page, "#turn")).toBe("Red to move");
-    expect(await text(page, "#score-red")).toBe("Red 50.0%");
-    expect(await text(page, "#score-blue")).toBe("Blue 50.0%");
+    expect(await text(page, "#score-red")).toBe("Red 25.0%");
+    expect(await text(page, "#score-blue")).toBe("Blue 75.0%");
 
-    // Red cuts off the corner between Points 1 and 4 (1.9% of the Board); the rest of the
-    // top-right quarter it passes through goes to Blue.
-    await drag(page, 1, 4);
+    // Red cuts off the corner between Points 16 and 19 (1.9% of the Board); the rest of the
+    // top-left quarter it passes through stays Blue.
+    await drag(page, 16, 19);
     expect(await text(page, "#turn")).toBe("Blue to move");
     expect(await text(page, "#score-red")).toBe("Red 26.9%");
     expect(await text(page, "#score-blue")).toBe("Blue 73.1%");
@@ -61,12 +61,12 @@ describe("the end of a game on the page", () => {
     for (const [start, end] of blueWinsGame) await drag(page, start, end);
 
     expect(await isVisible(page, "#result")).toBe(true);
-    expect(await text(page, "#result")).toBe("Blue wins: Red 46.8%, Blue 53.2%");
+    expect(await text(page, "#result")).toBe("Blue wins: Red 43.0%, Blue 57.0%");
 
     // Every Point is used, so no drag can start; the finished Board stays as it was.
     await drag(page, 0, 10);
-    expect(await text(page, "#score-red")).toBe("Red 46.8%");
-    expect(await text(page, "#score-blue")).toBe("Blue 53.2%");
+    expect(await text(page, "#score-red")).toBe("Red 43.0%");
+    expect(await text(page, "#score-blue")).toBe("Blue 57.0%");
 
     await page.click("#new-game");
     expect(await isVisible(page, "#result")).toBe(false);
@@ -116,44 +116,72 @@ describe("invalid drags on the page", () => {
     expect(await canvasImage(page)).toBe(board);
     await expectState("Blue to move", "Red 50.0%", "Blue 50.0%");
 
-    // Blue's crossing diameter: Red keeps the top half, Blue gets the bottom.
+    // Blue's crossing diameter takes the bottom half; Red keeps only the top-right quarter.
     await drag(page, 5, 15);
-    await expectState("Red to move", "Red 50.0%", "Blue 50.0%");
+    await expectState("Red to move", "Red 25.0%", "Blue 75.0%");
 
-    await drag(page, 1, 5); // released on a used Point
-    await drag(page, 1, 2); // released on a neighbouring Point
-    await expectState("Red to move", "Red 50.0%", "Blue 50.0%");
+    await drag(page, 16, 15); // released on a used Point
+    await drag(page, 16, 17); // released on a neighbouring Point
+    await expectState("Red to move", "Red 25.0%", "Blue 75.0%");
 
-    await drag(page, 1, 4);
+    await drag(page, 16, 19);
     await expectState("Blue to move", "Red 26.9%", "Blue 73.1%");
   });
 });
 
-describe("the Rule set on the page", () => {
-  const ruleSet = (page: Page) => selectedText(page, "#rule-set");
-  const isLocked = (page: Page) => isDisabled(page, "#rule-set");
+/** 9 Moves leaving Points 7 and 8 unused, so Blue has no legal 10th Move. */
+const stuckGame: [number, number][] = [
+  [14, 17], [1, 5], [11, 19], [9, 0], [4, 12], [18, 2], [3, 10], [15, 13], [6, 16],
+];
 
-  it("can be chosen before the first Move, locks after it, and unlocks on New game", async () => {
+describe("the Ending on the page", () => {
+  const ending = (page: Page) => selectedText(page, "#ending");
+  const isLocked = (page: Page) => isDisabled(page, "#ending");
+
+  it("is Award by default, can be chosen before the first Move, locks after it, and unlocks on New game", async () => {
     const page = await browser.newPage();
     await page.goto(inject("baseUrl"));
-    expect(await ruleSet(page)).toBe("Full split");
+    expect(await ending(page)).toBe("Award");
     expect(await isLocked(page)).toBe(false);
 
-    await page.select("#rule-set", "claim");
-    expect(await ruleSet(page)).toBe("Claim");
+    await page.select("#ending", "skip");
+    expect(await ending(page)).toBe("Skip");
 
     await drag(page, 0, 10);
     expect(await isLocked(page)).toBe(true);
-    expect(await ruleSet(page)).toBe("Claim");
-
-    for (const [start, end] of blueWinsGame.slice(1)) await drag(page, start, end);
-    // The same Moves as the Full split game, which ends 46.8% / 53.2%.
-    expect(await text(page, "#result")).toBe("Blue wins: Red 43.0%, Blue 57.0%");
-    expect(await isLocked(page)).toBe(true);
+    expect(await ending(page)).toBe("Skip");
 
     await page.click("#new-game");
     expect(await isLocked(page)).toBe(false);
-    expect(await ruleSet(page)).toBe("Claim");
+    expect(await ending(page)).toBe("Skip");
+    expect(await text(page, "#score-red")).toBe("Red 0.0%");
+  });
+
+  it("under Award, ends a stuck game with Blue taking the Region by the unused Points", async () => {
+    const page = await browser.newPage();
+    await page.goto(inject("baseUrl"));
+
+    for (const [start, end] of stuckGame) await drag(page, start, end);
+
+    expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
+    expect(await text(page, "#result")).toBe("Blue wins: Red 48.4%, Blue 51.6%");
+    expect(await text(page, "#score-red")).toBe("Red 48.4%");
+    expect(await text(page, "#score-blue")).toBe("Blue 51.6%");
+
+    // The Board is locked: no Line can be drawn between the last two Points.
+    await drag(page, 7, 8);
+    expect(await text(page, "#score-red")).toBe("Red 48.4%");
+  });
+
+  it("under Skip, ends a stuck game with the Regions scored as they stand", async () => {
+    const page = await browser.newPage();
+    await page.goto(inject("baseUrl"));
+    await page.select("#ending", "skip");
+
+    for (const [start, end] of stuckGame) await drag(page, start, end);
+
+    expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move");
+    expect(await text(page, "#result")).toBe("Red wins: Red 59.2%, Blue 40.8%");
   });
 });
 
@@ -179,7 +207,7 @@ describe("touch and resizing on the page", () => {
 
     await swipe(page, 0, 10);
     await swipe(page, 5, 15);
-    await swipe(page, 1, 4);
+    await swipe(page, 16, 19);
     expect(await text(page, "#turn")).toBe("Blue to move");
     await expectScores(page, "Red 26.9%", "Blue 73.1%");
   });
@@ -197,7 +225,7 @@ describe("touch and resizing on the page", () => {
     expect(small.fits).toBe(true);
 
     await drag(page, 5, 15);
-    await drag(page, 1, 4);
+    await drag(page, 16, 19);
     await expectScores(page, "Red 26.9%", "Blue 73.1%");
 
     await resizeWindow(page, 1200, 1000);

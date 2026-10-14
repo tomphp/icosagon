@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { applyMove, createGame, isLegalMove, previewMove, type Game, type RuleSet } from "./game";
+import { applyMove, createGame, isLegalMove, previewMove, type Ending, type Game } from "./game";
 
 describe("a fresh game", () => {
   it("has one uncoloured Region, Red to move and Scores of 0/0", () => {
-    const game = createGame("full-split");
+    const game = createGame("award");
 
     expect(game.regions).toHaveLength(1);
     expect(game.regions[0].colour).toBeNull();
@@ -34,7 +34,7 @@ describe("a diameter", () => {
   // Point 5 is at the right of the Board (1, 0); Point 15 at the left (-1, 0).
   it("Splits the Board 50/50, with the left side going to the Mover", () => {
     // Looking from Point 0 (top) down to Point 10 (bottom), the left side is the screen's right.
-    const game = applyMove(createGame("full-split"), { start: 0, end: 10 });
+    const game = applyMove(createGame("award"), { start: 0, end: 10 });
 
     expect(game.regions).toHaveLength(2);
     expect(game.scores.red).toBeCloseTo(0.5);
@@ -44,14 +44,14 @@ describe("a diameter", () => {
   });
 
   it("drawn in the opposite direction gives the opposite colouring", () => {
-    const game = applyMove(createGame("full-split"), { start: 10, end: 0 });
+    const game = applyMove(createGame("award"), { start: 10, end: 0 });
 
     expect(colourNear(game, 5)).toBe("blue");
     expect(colourNear(game, 15)).toBe("red");
   });
 
   it("passes the turn to Blue and records the Move", () => {
-    const game = applyMove(createGame("full-split"), { start: 0, end: 10 });
+    const game = applyMove(createGame("award"), { start: 0, end: 10 });
 
     expect(game.mover).toBe("blue");
     expect(game.moves).toEqual([{ start: 0, end: 10 }]);
@@ -60,21 +60,21 @@ describe("a diameter", () => {
 
 describe("Move legality", () => {
   it("allows a Line between two unused, non-adjacent Points", () => {
-    expect(isLegalMove(createGame("full-split"), { start: 0, end: 2 })).toBe(true);
+    expect(isLegalMove(createGame("award"), { start: 0, end: 2 })).toBe(true);
   });
 
   it("rejects a Line from a Point to itself", () => {
-    expect(isLegalMove(createGame("full-split"), { start: 4, end: 4 })).toBe(false);
+    expect(isLegalMove(createGame("award"), { start: 4, end: 4 })).toBe(false);
   });
 
   it("rejects a Line between adjacent Points, including across Point 0", () => {
-    const game = createGame("full-split");
+    const game = createGame("award");
     expect(isLegalMove(game, { start: 4, end: 5 })).toBe(false);
     expect(isLegalMove(game, { start: 19, end: 0 })).toBe(false);
   });
 
   it("rejects a Line touching a used Point", () => {
-    const game = applyMove(createGame("full-split"), { start: 0, end: 10 });
+    const game = applyMove(createGame("award"), { start: 0, end: 10 });
     expect(isLegalMove(game, { start: 10, end: 3 })).toBe(false);
     expect(isLegalMove(game, { start: 3, end: 0 })).toBe(false);
   });
@@ -82,7 +82,7 @@ describe("Move legality", () => {
 
 describe("applying an illegal Move", () => {
   it("is rejected for the same Point twice, neighbouring Points or a used Point", () => {
-    const fresh = createGame("full-split");
+    const fresh = createGame("award");
     expect(() => applyMove(fresh, { start: 4, end: 4 })).toThrow();
     expect(() => applyMove(fresh, { start: 4, end: 5 })).toThrow();
     expect(() => applyMove(fresh, { start: 19, end: 0 })).toThrow();
@@ -94,23 +94,20 @@ describe("applying an illegal Move", () => {
 });
 
 /**
- * Plays Moves written as [start, end] pairs from a fresh game under the Rule set, returning the
+ * Plays Moves written as [start, end] pairs from a fresh game with the Ending, returning the
  * game before any Move and after each one.
  */
-function playEachUnder(ruleSet: RuleSet, ...moves: [number, number][]) {
-  const games = [createGame(ruleSet)];
+function playEachWith(ending: Ending, ...moves: [number, number][]) {
+  const games = [createGame(ending)];
   for (const [start, end] of moves) games.push(applyMove(games[games.length - 1], { start, end }));
   return games;
 }
 
-/** Plays Moves from a fresh Full split game, returning the game before any Move and after each one. */
-const playEach = (...moves: [number, number][]) => playEachUnder("full-split", ...moves);
+/** Plays Moves from a fresh Award game, returning the game before any Move and after each one. */
+const playEach = (...moves: [number, number][]) => playEachWith("award", ...moves);
 
-/** The game after playing all the Moves under Full split. */
+/** The game after playing all the Moves under Award. */
 const play = (...moves: [number, number][]) => playEach(...moves).at(-1)!;
-
-/** The game after playing all the Moves under Claim. */
-const playClaim = (...moves: [number, number][]) => playEachUnder("claim", ...moves).at(-1)!;
 
 describe("turns", () => {
   it("alternate Red, Blue, Red, …", () => {
@@ -120,25 +117,28 @@ describe("turns", () => {
 });
 
 describe("crossing Lines", () => {
-  it("two crossing diameters give four Regions coloured by the second Move", () => {
-    // Blue draws 5→15 (right to left): its left side is the bottom half of the Board.
+  it("give the left side to the Mover and let the right side keep its previous colour", () => {
+    // Blue draws 5→15 (right to left): its left side, the bottom half, becomes Blue. The right
+    // side, the top half, keeps its colours: Red on the top right, Blue on the top left.
     const game = play([0, 10], [5, 15]);
 
     expect(game.regions).toHaveLength(4);
     expect(colourNear(game, 2)).toBe("red"); // top right
-    expect(colourNear(game, 18)).toBe("red"); // top left
+    expect(colourNear(game, 18)).toBe("blue"); // top left
     expect(colourNear(game, 8)).toBe("blue"); // bottom right
     expect(colourNear(game, 12)).toBe("blue"); // bottom left
+    expect(game.scores.red).toBeCloseTo(0.25);
+    expect(game.scores.blue).toBeCloseTo(0.75);
   });
 
   it("only Split the Regions they pass through", () => {
-    // 1→4 cuts off a corner of the top-right Region; the other three Regions keep their colour.
-    const game = play([0, 10], [5, 15], [1, 4]);
+    // 16→19 cuts off a corner of the top-left Region; the other three Regions keep their colour.
+    const game = play([0, 10], [5, 15], [16, 19]);
 
     expect(game.regions).toHaveLength(5);
-    expect(colourNear(game, 2, 0.97)).toBe("red"); // the cut-off corner, Red's left side
-    expect(colourNear(game, 2, 0.5)).toBe("blue"); // the rest of the top-right Region
-    expect(colourNear(game, 18)).toBe("red");
+    expect(colourNear(game, 18, 0.97)).toBe("red"); // the cut-off corner, Red's left side
+    expect(colourNear(game, 18, 0.5)).toBe("blue"); // the rest of the top-left Region
+    expect(colourNear(game, 2)).toBe("red");
     expect(colourNear(game, 8)).toBe("blue");
     expect(colourNear(game, 12)).toBe("blue");
   });
@@ -151,9 +151,9 @@ describe("several diameters through the centre", () => {
 
     expect(game.regions).toHaveLength(8);
     const colours = [1, 3, 6, 8, 11, 13, 16, 18].map((p) => colourNear(game, p));
-    expect(colours).toEqual(["blue", "red", "red", "blue", "red", "blue", "blue", "red"]);
-    expect(game.scores.red).toBeCloseTo(0.5);
-    expect(game.scores.blue).toBeCloseTo(0.5);
+    expect(colours).toEqual(["red", "red", "blue", "blue", "red", "blue", "blue", "blue"]);
+    expect(game.scores.red).toBeCloseTo(0.35);
+    expect(game.scores.blue).toBeCloseTo(0.65);
   });
 });
 
@@ -182,14 +182,8 @@ describe("the end of the game", () => {
     const game = play(...blueWinsGame);
 
     expect(game.outcome).toBe("blue-wins");
-    expect(game.scores.red).toBeCloseTo(0.4678, 4);
-    expect(game.scores.blue).toBeCloseTo(0.5322, 4);
-  });
-
-  it("is a Draw when the Scores are equal up to floating-point noise", () => {
-    const game = play([0, 10], [1, 11], [2, 12], [3, 13], [4, 14], [5, 15], [6, 16], [7, 17], [8, 18], [9, 19]);
-
-    expect(game.outcome).toBe("draw");
+    expect(game.scores.red).toBeCloseTo(0.4303, 4);
+    expect(game.scores.blue).toBeCloseTo(0.5697, 4);
   });
 
   it("rejects any further Moves", () => {
@@ -212,36 +206,80 @@ describe("a preview", () => {
   });
 });
 
-describe("the Claim Rule set", () => {
-  it("is the game's Rule set when created with it", () => {
-    expect(createGame("claim").ruleSet).toBe("claim");
+/** 9 Moves leaving Points 7 and 8 unused: Red is ahead, but the Region beside them is Red's. */
+const stuckGame: [number, number][] = [
+  [14, 17], [1, 5], [11, 19], [9, 0], [4, 12], [18, 2], [3, 10], [15, 13], [6, 16],
+];
+
+/** 9 Moves leaving Points 19 and 0 unused, either side of the top of the Board. */
+const stuckAcrossZeroGame: [number, number][] = [
+  [7, 18], [17, 15], [5, 9], [13, 3], [1, 6], [8, 14], [11, 2], [10, 4], [16, 12],
+];
+
+describe("a game where the last two unused Points are adjacent", () => {
+  it("ends after the 9th Move, with Blue stuck beside those Points", () => {
+    const games = playEach(...stuckGame);
+    for (const game of games.slice(0, 9)) expect(game.outcome).toBe("in-progress");
+
+    const game = games[9];
+    expect(game.outcome).not.toBe("in-progress");
+    expect(game.stuck).toEqual({ player: "blue", points: [7, 8] });
+    expect(game.moves).toHaveLength(9);
   });
 
-  it("gives the right side of the first Split to the Opponent", () => {
-    const game = playClaim([0, 10]);
+  it("names the wrap-around pair as 19 and 0", () => {
+    const game = play(...stuckAcrossZeroGame);
 
-    expect(colourNear(game, 5)).toBe("red");
-    expect(colourNear(game, 15)).toBe("blue");
+    expect(game.outcome).not.toBe("in-progress");
+    expect(game.stuck).toEqual({ player: "blue", points: [19, 0] });
   });
 
-  it("lets the right side of a later Split keep its previous colour", () => {
-    // Blue draws 5→15: its left side, the bottom half, becomes Blue. The right side, the top
-    // half, keeps its colours: Red on the top right, Blue on the top left.
-    const game = playClaim([0, 10], [5, 15]);
+  it("under Award, turns the Region beside the Points blue, which can change the winner", () => {
+    const skip = playEachWith("skip", ...stuckGame).at(-1)!;
+    const award = play(...stuckGame);
 
-    expect(colourNear(game, 2)).toBe("red"); // top right
-    expect(colourNear(game, 18)).toBe("blue"); // top left
-    expect(colourNear(game, 8)).toBe("blue"); // bottom right
-    expect(colourNear(game, 12)).toBe("blue"); // bottom left
-    expect(game.scores.red).toBeCloseTo(0.25);
-    expect(game.scores.blue).toBeCloseTo(0.75);
+    expect(colourNear(skip, 7.5, 0.97)).toBe("red");
+    expect(colourNear(award, 7.5, 0.97)).toBe("blue");
+    expect(award.scores.blue).toBeGreaterThan(skip.scores.blue);
+    expect(award.scores.red + award.scores.blue).toBeCloseTo(1, 9);
+    expect(skip.outcome).toBe("red-wins");
+    expect(award.outcome).toBe("blue-wins");
   });
 
-  it("gives different Scores from Full split for the same scripted game", () => {
-    const fullSplit = play(...blueWinsGame);
-    const claim = playClaim(...blueWinsGame);
+  it("under Award, finds the Region beside the wrap-around pair", () => {
+    const skip = playEachWith("skip", ...stuckAcrossZeroGame).at(-1)!;
+    const award = play(...stuckAcrossZeroGame);
 
-    expect(claim.scores.red).not.toBeCloseTo(fullSplit.scores.red, 3);
-    expect(claim.scores.red + claim.scores.blue).toBeCloseTo(1, 9);
+    expect(colourNear(skip, 19.5, 0.97)).toBe("red");
+    expect(colourNear(award, 19.5, 0.97)).toBe("blue");
+    expect(award.outcome).toBe("blue-wins");
+  });
+
+  it("under Skip, leaves the Regions and Scores as they were after the 9th Move", () => {
+    const games = playEachWith("skip", ...stuckGame);
+    const game = games[9];
+
+    expect(game.regions).toEqual(previewMove(games[8], { start: 6, end: 16 }));
+    expect(game.stuck).toEqual({ player: "blue", points: [7, 8] });
+    expect(game.scores.red).toBeCloseTo(0.5915, 4);
+    expect(game.scores.blue).toBeCloseTo(0.4085, 4);
+    expect(game.outcome).toBe("red-wins");
+  });
+
+  it("rejects any further Move", () => {
+    const game = play(...stuckGame);
+
+    expect(isLegalMove(game, { start: 7, end: 8 })).toBe(false);
+    expect(() => applyMove(game, { start: 7, end: 8 })).toThrow();
+  });
+});
+
+describe("a game whose last two unused Points are not adjacent", () => {
+  it("is still in progress after the 9th Move", () => {
+    const game = play(...blueWinsGame.slice(0, 9));
+
+    expect(game.outcome).toBe("in-progress");
+    expect(game.stuck).toBeNull();
+    expect(game.mover).toBe("blue");
   });
 });

@@ -28,23 +28,26 @@ _Avoid_: Polygon, cell, area
 Red or Blue. Red always makes the first Move.
 
 **Move**:
-A Player drawing one Line, written `start→end` (e.g. `3→12`). A game always lasts exactly 10 Moves.
+A Player drawing one Line, written `start→end` (e.g. `3→12`). A game lasts 10 Moves, or 9 if the only two unused Points left are adjacent.
 _Avoid_: Turn (a turn is a Player's opportunity to make a Move)
 
 **Mover**:
 The Player making the current Move. The other Player is the **Opponent**.
 
 **Split**:
-What a Line does to each Region it passes through: it cuts the Region in two. The **left side** is the half on the left when looking from the Line's start Point to its end Point.
+What a Line does to each Region it passes through: it cuts the Region in two. The **left side** is the half on the left when looking from the Line's start Point to its end Point. The left side becomes the Mover's colour; the right side keeps its prior colour (or becomes the Opponent's colour if it had none).
 
-**Rule set**:
-How a Split assigns colours, chosen before the first Move and fixed for the game. Either **Full split** or **Claim**.
+**Game over**:
+The game ends after the 10th Move, or after the 9th if the only two unused Points left are adjacent. What happens in the second case depends on the Ending.
 
-**Full split**:
-The Rule set where the left side of each Split Region becomes the Mover's colour and the right side becomes the Opponent's colour, regardless of prior colour.
+**Ending**:
+What happens when the game ends after 9 Moves, chosen before the first Move and fixed for the game. Either **Award** or **Skip**.
 
-**Claim**:
-The Rule set where the left side of each Split Region becomes the Mover's colour and the right side keeps its prior colour (or becomes the Opponent's colour if it had none).
+**Award**:
+The Ending where the Player who cannot move takes the whole Region beside the Board side between the two unused Points, whatever its prior colour.
+
+**Skip**:
+The Ending where the Player who cannot move simply misses the Move; the Regions are scored as they stand.
 
 **Score**:
 A Player's total coloured area. The Player with the larger Score wins; equal Scores are a **Draw**.

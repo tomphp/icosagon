@@ -1,4 +1,4 @@
-import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Game, type Outcome, type Player, type RuleSet } from "./game";
+import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Ending, type Game, type Outcome, type Player } from "./game";
 import { attachInput } from "./input";
 import { boardLayout } from "./layout";
 import { render, type DragView } from "./render";
@@ -11,15 +11,15 @@ const scoreBlue = document.querySelector("#score-blue")!;
 const turn = document.querySelector("#turn")!;
 const result = document.querySelector<HTMLElement>("#result")!;
 const newGame = document.querySelector("#new-game")!;
-const ruleSetSelect = document.querySelector<HTMLSelectElement>("#rule-set")!;
-/** The Rule set chosen in the selector; its option values are the RuleSet names. */
-const selectedRuleSet = () => ruleSetSelect.value as RuleSet;
+const endingSelect = document.querySelector<HTMLSelectElement>("#ending")!;
+/** The Ending chosen in the selector; its option values are the Ending names. */
+const selectedEnding = () => endingSelect.value as Ending;
 
 /** The canvas's side in CSS pixels, the units pointer events and the layout use. */
 let size = 0;
 const layout = () => boardLayout(size, size);
 
-let game: Game = createGame(selectedRuleSet());
+let game: Game = createGame(selectedEnding());
 let drag: DragView | null = null;
 
 const NAME: Record<Player, string> = { red: "Red", blue: "Blue" };
@@ -30,31 +30,39 @@ const RESULT: Record<Exclude<Outcome, "in-progress">, string> = {
 };
 const percent = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
 
+/** "Game over", with the reason when the Mover had no legal Move. */
+function gameOverText({ stuck, ending }: Game) {
+  if (!stuck) return "Game over";
+  const reason = `Game over — ${NAME[stuck.player]} has no legal Move`;
+  const [p, q] = stuck.points;
+  return ending === "award" ? `${reason} and takes the Region by Points ${p} and ${q}` : reason;
+}
+
 function update() {
   render(ctx, layout(), game, drag);
   const red = `Red ${percent(game.scores.red)}`;
   const blue = `Blue ${percent(game.scores.blue)}`;
   scoreRed.textContent = red;
   scoreBlue.textContent = blue;
-  // The Rule set is fixed once the first Line is drawn.
-  ruleSetSelect.disabled = game.moves.length > 0;
+  // The Ending is fixed once the first Line is drawn.
+  endingSelect.disabled = game.moves.length > 0;
   if (game.outcome === "in-progress") {
     turn.textContent = `${NAME[game.mover]} to move`;
     result.hidden = true;
   } else {
-    turn.textContent = "Game over";
+    turn.textContent = gameOverText(game);
     result.textContent = `${RESULT[game.outcome]}: ${red}, ${blue}`;
     result.hidden = false;
   }
 }
 
-ruleSetSelect.addEventListener("change", () => {
-  game = createGame(selectedRuleSet());
+endingSelect.addEventListener("change", () => {
+  game = createGame(selectedEnding());
   update();
 });
 
 newGame.addEventListener("click", () => {
-  game = createGame(game.ruleSet);
+  game = createGame(game.ending);
   drag = null;
   update();
 });
