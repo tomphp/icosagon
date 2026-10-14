@@ -1,6 +1,6 @@
 # 03: Comparing Models: `match` CLI and Training's final report
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** A `match` command that plays any mix of participants (Model file paths, `greedy`, `random`) against each other in memory. It's a thin wrapper around a Training module function, `match(participants, options) → results`.
 
@@ -12,11 +12,11 @@ See `.scratch/neural-strategy/spec.md`.
 
 **Blocked by:** 02 (`train` CLI: evolve a fresh Population).
 
-- [ ] `match` accepts any number of Model paths, `greedy` and `random`
-- [ ] Each pairing plays 4 × N games; Neural vs Neural plays 4
-- [ ] Counts add up to the games played, and a pairing's results mirror between its two participants
-- [ ] `--seed` makes results reproducible
-- [ ] An unknown or incompatible participant gives a clear error
-- [ ] The CLI prints a win/draw/loss and average margin table
-- [ ] `train` prints its final report against Greedy and Random and stores it in the Model
-- [ ] Unit tests on `match` and on the stored report
+- [x] `match` accepts any number of Model paths, `greedy` and `random`
+- [x] Each pairing plays 4 × N games; Neural vs Neural plays 4
+- [x] Counts add up to the games played, and a pairing's results mirror between its two participants
+- [x] `--seed` makes results reproducible
+- [x] An unknown or incompatible participant gives a clear error
+- [x] The CLI prints a win/draw/loss and average margin table
+- [x] `train` prints its final report against Greedy and Random and stores it in the Model
+- [x] Unit tests on `match` and on the stored report

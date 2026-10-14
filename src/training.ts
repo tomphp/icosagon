@@ -1,6 +1,6 @@
 import { chooseMove, type Random, type Strategy } from "./computer.ts";
 import { applyMove, createGame, type Ending, type Game } from "./game.ts";
-import { MODEL_VERSION, type Model } from "./model.ts";
+import { MODEL_VERSION, type Model, type Results } from "./model.ts";
 import { INPUT_SIZE, type Network } from "./network.ts";
 
 export interface TrainingOptions {
@@ -14,11 +14,13 @@ export interface TrainingOptions {
   /** The standard deviation of the Gaussian noise added to every weight of a mutated copy. */
   mutation: number;
   seed: number;
+  /** How many games the best network plays against each of Greedy and Random at the end; 200 when omitted. */
+  reportGames?: number;
   /** Called after each Generation's games. */
   onGeneration?: (progress: Progress) => void;
 }
 
-export const TRAINING_DEFAULTS = { population: 24, hidden: 32, survivors: 0.25, mutation: 0.05 } as const;
+export const TRAINING_DEFAULTS = { population: 24, hidden: 32, survivors: 0.25, mutation: 0.05, reportGames: 200 } as const;
 
 /** How a Generation went. */
 export interface Progress {
@@ -131,10 +133,69 @@ function playGeneration(population: Network[], random: Random): { fitness: numbe
   return { fitness: totals.map(({ margin, games }) => margin / games), games: games.length };
 }
 
+/** How each participant of a pairing did, from its own point of view. */
+type PairResults = [Results, Results];
+
+/**
+ * Plays the games between the two Strategies, alternating colours every game and Endings every two,
+ * each game with its own random source seeded in turn from `random`.
+ */
+function playPairing(a: Strategy, b: Strategy, games: number, random: Random): PairResults {
+  const totals = { wins: 0, draws: 0, losses: 0, margin: 0 };
+  for (let i = 0; i < games; i++) {
+    const aIsRed = i % 2 === 0;
+    const ending = ENDINGS[Math.floor(i / 2) % 2];
+    const { scores, outcome } = playGame(aIsRed ? a : b, aIsRed ? b : a, ending, seeded(random() * 2 ** 32));
+    totals.margin += aIsRed ? scores.red - scores.blue : scores.blue - scores.red;
+    if (outcome === "draw") totals.draws++;
+    else if ((outcome === "red-wins") === aIsRed) totals.wins++;
+    else totals.losses++;
+  }
+  const { wins, draws, losses, margin } = totals;
+  return [
+    { wins, draws, losses, margin: margin / games },
+    { wins: losses, draws, losses: wins, margin: -margin / games },
+  ];
+}
+
+export interface MatchOptions {
+  /** How many times each pairing plays its 4 games, both colours under both Endings. */
+  games: number;
+  seed: number;
+}
+
+/** How a pair of participants, by index, did against each other. */
+export interface Pairing {
+  a: number;
+  b: number;
+  games: number;
+  /** The first participant's results, then the second's. */
+  results: PairResults;
+}
+
+/**
+ * Plays every pair of participants against each other under both colours and both Endings, `games`
+ * times over. Neural vs Neural is deterministic, so it plays its 4 distinct games once. The seed fully
+ * determines the results.
+ */
+export function match(participants: Strategy[], options: MatchOptions): Pairing[] {
+  const random = seeded(options.seed);
+  const pairings: Pairing[] = [];
+  for (let a = 0; a < participants.length; a++) {
+    for (let b = a + 1; b < participants.length; b++) {
+      const bothNeural = typeof participants[a] === "object" && typeof participants[b] === "object";
+      const games = 4 * (bothNeural ? 1 : options.games);
+      pairings.push({ a, b, games, results: playPairing(participants[a], participants[b], games, random) });
+    }
+  }
+  return pairings;
+}
+
 /**
  * Evolves a fresh Population over the Generations and returns it as a Model, ready for its next
  * Generation: the survivors of the last Generation best first, then their mutated copies in the order
- * of the survivor each was copied from. The seed fully determines the result.
+ * of the survivor each was copied from. It ends by playing the best network against Greedy and Random
+ * and stores the report. The seed fully determines the result.
  */
 export function train(options: TrainingOptions): Model {
   const random = seeded(options.seed);
@@ -157,5 +218,11 @@ export function train(options: TrainingOptions): Model {
     ];
   }
 
-  return modelOf(population, options.seed, options.generations);
+  const best = neural(population[0]);
+  const reportGames = options.reportGames ?? TRAINING_DEFAULTS.reportGames;
+  const report = {
+    greedy: playPairing(best, "greedy", reportGames, random)[0],
+    random: playPairing(best, "random", reportGames, random)[0],
+  };
+  return { ...modelOf(population, options.seed, options.generations), report };
 }

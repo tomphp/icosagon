@@ -62,5 +62,11 @@ const model = train({
   },
 });
 
+for (const [opponent, r] of Object.entries(model.report!)) {
+  const margin = (r.margin >= 0 ? "+" : "") + r.margin.toFixed(4);
+  console.log(`Best vs ${opponent}: ${r.wins} wins, ${r.draws} draws, ${r.losses} losses, average margin ${margin}`);
+  games += r.wins + r.draws + r.losses;
+}
+
 writeFileSync(values.out, saveModel(model));
 console.log(`Played ${games} games. Wrote ${values.out}`);
