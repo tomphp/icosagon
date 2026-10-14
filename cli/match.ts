@@ -43,7 +43,7 @@ const seed = wholeFlag("seed", values.seed, Math.floor(Math.random() * 2 ** 32),
 const participants = positionals.map(participant);
 console.log(`Seed ${seed}`);
 
-const pairings = match(
+const pairings = await match(
   participants.map(({ strategy }) => strategy),
   { games, seed },
 );

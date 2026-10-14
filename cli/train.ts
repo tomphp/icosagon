@@ -61,7 +61,7 @@ console.log(`Seed ${seed}`);
 if (from) console.log(`Continuing ${from.name} (${from.model.generations} gens)`);
 
 let games = 0;
-const model = train({
+const model = await train({
   generations,
   population,
   hidden,

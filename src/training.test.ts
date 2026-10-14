@@ -15,13 +15,13 @@ const tiny: TrainingOptions = {
 };
 
 /** Trains with the options, collecting every Generation's progress. */
-function trainCollecting(options: TrainingOptions) {
+async function trainCollecting(options: TrainingOptions) {
   const progress: Progress[] = [];
-  const model = train({ ...options, onGeneration: (p) => progress.push(p) });
+  const model = await train({ ...options, onGeneration: (p) => progress.push(p) });
   return { model, progress };
 }
 
-const { model, progress } = trainCollecting(tiny);
+const { model, progress } = await trainCollecting(tiny);
 
 describe("Training", () => {
   it("gives a Model that loads, with its seed, its Generations and no parent", () => {
@@ -32,9 +32,13 @@ describe("Training", () => {
     expect(model.shape.hidden).toBe(2);
   });
 
-  it("gives an identical Model for the same seed and a different one for a different seed", () => {
-    expect(train(tiny)).toEqual(model);
-    expect(train({ ...tiny, seed: 2 }).population).not.toEqual(model.population);
+  it("gives an identical Model for the same seed and a different one for a different seed", async () => {
+    expect(await train(tiny)).toEqual(model);
+    expect((await train({ ...tiny, seed: 2 })).population).not.toEqual(model.population);
+  });
+
+  it("gives an identical Model whether or not its games run in parallel", async () => {
+    expect(await train({ ...tiny, workers: 3 })).toEqual(await train({ ...tiny, workers: 1 }));
   });
 
   it("preserves the Population size", () => {
@@ -62,8 +66,8 @@ describe("Training", () => {
     for (const network of first.slice(1)) expect(second).not.toContainEqual(network);
   });
 
-  it("keeps at least one survivor however small the share", () => {
-    const { progress } = trainCollecting({ ...tiny, survivors: 0 });
+  it("keeps at least one survivor however small the share", async () => {
+    const { progress } = await trainCollecting({ ...tiny, survivors: 0 });
     expect(progress[1].ranked.map((r) => r.network)).toContainEqual(progress[0].ranked[0].network);
   });
 
@@ -79,8 +83,10 @@ describe("Training", () => {
   });
 });
 
+const continuing = await trainCollecting({ ...tiny, generations: 3, seed: 5, from: { model, name: "gen-1" } });
+
 describe("Continuing a Model", () => {
-  const { model: continued, progress } = trainCollecting({ ...tiny, generations: 3, seed: 5, from: { model, name: "gen-1" } });
+  const { model: continued, progress } = continuing;
 
   it("starts from the Model's Population as stored", () => {
     const first = progress[0].ranked.map((r) => r.network);
@@ -94,14 +100,14 @@ describe("Continuing a Model", () => {
     expect(continued.seed).toBe(5);
   });
 
-  it("keeps the Model's Population size and shape, whatever the options say", () => {
-    const { model: resized } = trainCollecting({ ...tiny, population: 6, hidden: 3, from: { model, name: "gen-1" } });
+  it("keeps the Model's Population size and shape, whatever the options say", async () => {
+    const { model: resized } = await trainCollecting({ ...tiny, population: 6, hidden: 3, from: { model, name: "gen-1" } });
     expect(resized.population).toHaveLength(4);
     expect(resized.shape).toEqual(model.shape);
   });
 
-  it("gives an identical Model for the same seed", () => {
-    expect(train({ ...tiny, generations: 3, seed: 5, from: { model, name: "gen-1" } })).toEqual(continued);
+  it("gives an identical Model for the same seed", async () => {
+    expect(await train({ ...tiny, generations: 3, seed: 5, from: { model, name: "gen-1" } })).toEqual(continued);
   });
 });
 
@@ -123,11 +129,11 @@ describe("Training's final report", () => {
   });
 });
 
-describe("match", () => {
-  const neural = (model: Model): Strategy => ({ kind: "neural", model });
-  const participants: Strategy[] = [neural(model), neural(train({ ...tiny, seed: 2 })), "greedy", "random"];
-  const pairings = match(participants, { games: 2, seed: 7 });
+const neural = (model: Model): Strategy => ({ kind: "neural", model });
+const participants: Strategy[] = [neural(model), neural(await train({ ...tiny, seed: 2 })), "greedy", "random"];
+const pairings = await match(participants, { games: 2, seed: 7 });
 
+describe("match", () => {
   it("plays every pair of participants once", () => {
     expect(pairings.map(({ a, b }) => [a, b])).toEqual([
       [0, 1],
@@ -152,7 +158,12 @@ describe("match", () => {
     }
   });
 
-  it("gives identical results for the same seed", () => {
-    expect(match(participants, { games: 2, seed: 7 })).toEqual(pairings);
+  it("gives identical results for the same seed", async () => {
+    expect(await match(participants, { games: 2, seed: 7 })).toEqual(pairings);
+  });
+
+  it("gives identical results whether or not its games run in parallel", async () => {
+    const options = { games: 2, seed: 7 };
+    expect(await match(participants, { ...options, workers: 3 })).toEqual(await match(participants, { ...options, workers: 1 }));
   });
 });
