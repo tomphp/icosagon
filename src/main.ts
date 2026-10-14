@@ -24,7 +24,7 @@ const selectedEnding = () => endingSelect.value as Ending;
 /** Each Model in models/, bundled into the page and picked up live by the dev server, as a selector option. */
 const neural = neuralOptions(import.meta.glob("../models/*.json", { eager: true, import: "default" }), console.warn);
 for (const { value, label } of neural) strategySelect.add(new Option(label, value));
-/** The Strategy chosen in the selector: Random and Greedy options' values are their names. */
+/** The Strategy chosen in the selector: the named Strategies' options have their names as values. */
 const selectedStrategy = (): Strategy =>
   neural.find(({ value }) => value === strategySelect.value)?.strategy ?? (strategySelect.value as Strategy);
 

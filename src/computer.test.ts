@@ -189,3 +189,72 @@ describe("the Neural Strategy", () => {
     expect(scoreAfter(game, worst)).toBeLessThan(bestScore(game) - 0.01);
   });
 });
+
+describe("the Hoarder Strategy", () => {
+  it("doesn't count a Region with no Point on its edge as Settled while a legal Line still splits it", () => {
+    // 0→9, 3→12 and 15→6 leave the triangle in the middle with no Point on its edge, as 6→15 does, but
+    // Red's rather than Blue's; 13→18 adds more such Regions. Legal Lines still split them all. Counting them as Settled would make 17→1 best;
+    // in fact 16→14 settles the most.
+    const game = play([0, 9], [3, 12], [15, 6], [13, 18]);
+
+    expect(key(chooseMove(game, "hoarder", always(0)))).toBe("16→14");
+  });
+
+  it("takes a Move that settles area over a higher-scoring Move that settles nothing", () => {
+    // Greedy's 11→9 takes almost the whole Board, but every Region it leaves Red can still be Split.
+    // 1→5 settles the Region between Points 1 and 5 for Red.
+    const game = play([2, 4], [10, 3]);
+
+    expect(key(chooseMove(game, "greedy", always(0)))).toBe("11→9");
+    expect(key(chooseMove(game, "hoarder", always(0)))).toBe("1→5");
+  });
+
+  it("picks the candidate leaving the most Settled area, over one that also settles area and scores more", () => {
+    // 11→16 and 12→16 both settle area for Red; 11→16 scores more, but 12→16 settles more.
+    const game = play([3, 14], [15, 13]);
+
+    expect(scoreAfter(game, { start: 11, end: 16 })).toBeGreaterThan(scoreAfter(game, { start: 12, end: 16 }));
+    expect(key(chooseMove(game, "hoarder", always(0)))).toBe("12→16");
+  });
+
+  it("breaks ties on Settled area by Score, then using the random source", () => {
+    // Blue's 2→4, 5→7, 8→10, 11→13, 14→16 and 19→1 each settle the corner around a used Point, all the
+    // same size; 8→10 and 11→13 score the most and the same.
+    const game = play([0, 9], [3, 12], [6, 15]);
+    const values = [0, 0.25, 0.5, 0.75, 1 - Number.EPSILON];
+    const chosen = new Set(values.map((value) => key(chooseMove(game, "hoarder", always(value)))));
+
+    expect(scoreAfter(game, { start: 8, end: 10 })).toBeGreaterThan(scoreAfter(game, { start: 2, end: 4 }));
+    expect([...chosen].sort()).toEqual(["11→13", "8→10"]);
+  });
+
+  it("plays as Greedy when no Move settles area for it", () => {
+    // From a fresh game, no Line leaves the Mover a Region that no other Line can cut.
+    const game = createGame("award");
+    for (const value of [0, 0.25, 0.5, 0.75, 1 - Number.EPSILON]) {
+      expect(chooseMove(game, "hoarder", always(value))).toEqual(chooseMove(game, "greedy", always(value)));
+    }
+  });
+
+  it("counts the Award a game-ending Move triggers, once every Region is Settled", () => {
+    // Red's 16→5 leaves Points 9 and 10 for Blue, who cannot move. Under Skip, Red keeps the most
+    // Settled area that way; under Award, Blue takes the Region beside them and 10→5 settles more.
+    const moves: [number, number][] = [[13, 11], [14, 0], [17, 12], [15, 1], [8, 18], [19, 2], [4, 6], [7, 3]];
+
+    expect(key(chooseMove(playWith("award", ...moves), "hoarder", always(0)))).toBe("10→5");
+    expect(key(chooseMove(playWith("skip", ...moves), "hoarder", always(0)))).toBe("16→5");
+  });
+
+  it("always returns a legal Move under both Endings, to Game over", () => {
+    for (const ending of ["award", "skip"] as const) {
+      for (const value of [0, 0.5, 1 - Number.EPSILON]) {
+        let game = createGame(ending);
+        while (game.outcome === "in-progress") {
+          const move = chooseMove(game, "hoarder", always(value));
+          expect(isLegalMove(game, move)).toBe(true);
+          game = applyMove(game, move);
+        }
+      }
+    }
+  });
+});

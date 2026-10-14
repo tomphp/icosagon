@@ -233,35 +233,51 @@ const FIXTURE = { value: "neural:fixture", label: "Neural: fixture (0 gens)" };
 const optionTexts = (page: Page, selector: string) =>
   page.$eval(selector, (el) => Array.from((el as HTMLSelectElement).options, (o) => o.text));
 
-describe("a Neural Model on the page", () => {
-  it("is offered after Random and Greedy, with Greedy still the default", async () => {
+/**
+ * Picks the Strategy option and plays the Human's share of a game against it to Game over, checking
+ * that every Move the Computer plays is legal.
+ */
+async function playToGameOver({ value, label }: { value: string; label: string }) {
+  const page = await openPage([HUMAN_RED]);
+  await page.select("#opponent", "computer");
+  await page.select("#strategy", value);
+  expect(await selectedText(page, "#strategy")).toBe(label);
+  expect(await text(page, "#you")).toBe("You are Red");
+
+  let game = createGame("award");
+  while (game.outcome === "in-progress") {
+    // The Human plays some legal Move; applying the Computer's reply checks that it is legal.
+    const move = chooseMove(game, "random", () => 0);
+    await drag(page, move.start, move.end);
+    game = applyMove(game, move);
+    if (game.outcome !== "in-progress") break;
+    const played = (await text(page, "#computer-played"))!.match(/^Computer played (\d+)→(\d+)$/);
+    expect(played).not.toBeNull();
+    game = applyMove(game, { start: Number(played![1]), end: Number(played![2]) });
+    await expectScores(page, game);
+  }
+
+  expect(await text(page, "#result")).toMatch(/^(You win|Computer wins|Draw): /);
+  expect(await text(page, "#result")).toContain(scoreText(game));
+}
+
+describe("the Hoarder on the page", () => {
+  it("is offered after Greedy", async () => {
     const page = await openPage([HUMAN_RED]);
 
-    expect(await optionTexts(page, "#strategy")).toEqual(["Random", "Greedy", FIXTURE.label]);
+    expect((await optionTexts(page, "#strategy")).slice(0, 3)).toEqual(["Random", "Greedy", "Hoarder"]);
+  });
+
+  it("plays only legal Moves against the Human to Game over", () => playToGameOver({ value: "hoarder", label: "Hoarder" }));
+});
+
+describe("a Neural Model on the page", () => {
+  it("is offered after the named Strategies, with Greedy still the default", async () => {
+    const page = await openPage([HUMAN_RED]);
+
+    expect(await optionTexts(page, "#strategy")).toEqual(["Random", "Greedy", "Hoarder", FIXTURE.label]);
     expect(await selectedText(page, "#strategy")).toBe("Greedy");
   });
 
-  it("plays only legal Moves against the Human to Game over", async () => {
-    const page = await openPage([HUMAN_RED]);
-    await page.select("#opponent", "computer");
-    await page.select("#strategy", FIXTURE.value);
-    expect(await selectedText(page, "#strategy")).toBe(FIXTURE.label);
-    expect(await text(page, "#you")).toBe("You are Red");
-
-    let game = createGame("award");
-    while (game.outcome === "in-progress") {
-      // The Human plays some legal Move; applying the Computer's reply checks that it is legal.
-      const move = chooseMove(game, "random", () => 0);
-      await drag(page, move.start, move.end);
-      game = applyMove(game, move);
-      if (game.outcome !== "in-progress") break;
-      const played = (await text(page, "#computer-played"))!.match(/^Computer played (\d+)→(\d+)$/);
-      expect(played).not.toBeNull();
-      game = applyMove(game, { start: Number(played![1]), end: Number(played![2]) });
-      await expectScores(page, game);
-    }
-
-    expect(await text(page, "#result")).toMatch(/^(You win|Computer wins|Draw): /);
-    expect(await text(page, "#result")).toContain(scoreText(game));
-  });
+  it("plays only legal Moves against the Human to Game over", () => playToGameOver(FIXTURE));
 });

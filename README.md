@@ -38,7 +38,7 @@ Enter the dev shell with `nix develop` (provides Node.js and Chromium), run `npm
 - `npm test`: run the unit tests
 - `npm run test:browser`: run the browser tests (Puppeteer, using the Chromium from Nix)
 - `npm run typecheck` / `npm run build`
-- `npm run train -- --generations N --out models/NAME.json`: train a Neural Model (also `--population`, `--hidden`, `--survivors`, `--mutation`, `--seed`), ending with a report against Greedy and Random. Add `--from models/OLD.json` to continue from that Model's Population, adding to its total Generations. Ctrl-C stops early, dropping the Generation in progress and still writing the Model with the Generations completed; a second Ctrl-C quits without writing
-- `npm run match -- PARTICIPANT PARTICIPANT... [--games N] [--seed N]`: play Model files, `greedy` and `random` against each other and print a results table
+- `npm run train -- --generations N --out models/NAME.json`: train a Neural Model (also `--population`, `--hidden`, `--survivors`, `--mutation`, `--seed`), ending with a report against Greedy, Hoarder and Random. Each Generation every network plays Greedy and Hoarder as well as the rest of the Population. Add `--from models/OLD.json` to continue from that Model's Population, adding to its total Generations. Ctrl-C stops early, dropping the Generation in progress and still writing the Model with the Generations completed; a second Ctrl-C quits without writing
+- `npm run match -- PARTICIPANT PARTICIPANT... [--games N] [--seed N]`: play Model files, `greedy`, `hoarder` and `random` against each other and print a results table
 
 Both `train` and `match` play their games on every CPU core, with the same results as on one: a seed always gives the same output.
