@@ -15,8 +15,11 @@ const UNCOLOURED = "#f1f1f1";
 const POINT_RADIUS = 6;
 
 export function render(ctx: CanvasRenderingContext2D, layout: Layout, game: Game, drag: DragView | null) {
-  const { width, height } = ctx.canvas;
-  ctx.clearRect(0, 0, width, height);
+  // Clear every backing pixel; the layout is in CSS pixels, scaled to the device by the context's transform.
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.restore();
 
   for (const region of drag?.preview ?? game.regions) {
     ctx.beginPath();

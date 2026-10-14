@@ -39,6 +39,39 @@ export async function drag(page: Page, from: Spot, ...path: [...Spot[], Spot]) {
   await page.mouse.up();
 }
 
+/** A finger drag: touch the first Spot, slide through the rest, lift on the last. Needs a touch viewport. */
+export async function swipe(page: Page, from: Spot, ...path: [...Spot[], Spot]) {
+  let at = await onScreen(page, from);
+  await page.touchscreen.touchStart(at.x, at.y);
+  for (const spot of path) {
+    const p = await onScreen(page, spot);
+    for (let i = 1; i <= 10; i++) {
+      await page.touchscreen.touchMove(at.x + ((p.x - at.x) * i) / 10, at.y + ((p.y - at.y) * i) / 10);
+    }
+    at = p;
+  }
+  await page.touchscreen.touchEnd();
+}
+
+/** Resizes the window and waits for the page to lay itself out again at the new size. */
+export async function resizeWindow(page: Page, width: number, height: number) {
+  await page.setViewport({ width, height });
+  // Resize handling runs during the next rendering step, which has passed once two frames have started.
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+}
+
+/** The canvas's on-screen size, and whether all of it is inside the window. */
+export function canvasBox(page: Page) {
+  return page.$eval("canvas", (c) => {
+    const r = c.getBoundingClientRect();
+    return {
+      width: r.width,
+      height: r.height,
+      fits: r.left >= 0 && r.top >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight,
+    };
+  });
+}
+
 /** What the canvas currently shows, for comparing before and after. */
 export function canvasImage(page: Page) {
   return page.$eval("canvas", (c) => c.toDataURL());

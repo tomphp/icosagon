@@ -5,6 +5,7 @@ import { render, type DragView } from "./render";
 
 const canvas = document.querySelector("canvas")!;
 const ctx = canvas.getContext("2d")!;
+const stage = document.querySelector<HTMLElement>("#stage")!;
 const scoreRed = document.querySelector("#score-red")!;
 const scoreBlue = document.querySelector("#score-blue")!;
 const turn = document.querySelector("#turn")!;
@@ -14,7 +15,9 @@ const ruleSetSelect = document.querySelector<HTMLSelectElement>("#rule-set")!;
 /** The Rule set chosen in the selector; its option values are the RuleSet names. */
 const selectedRuleSet = () => ruleSetSelect.value as RuleSet;
 
-const layout = () => boardLayout(canvas.width, canvas.height);
+/** The canvas's side in CSS pixels, the units pointer events and the layout use. */
+let size = 0;
+const layout = () => boardLayout(size, size);
 
 let game: Game = createGame(selectedRuleSet());
 let drag: DragView | null = null;
@@ -71,4 +74,15 @@ attachInput(canvas, layout, {
   },
 });
 
-update();
+/** Fits the canvas to the largest square in the space under the HUD, drawn sharply at the device's pixel ratio. */
+function resize() {
+  size = Math.floor(Math.min(stage.clientWidth, stage.clientHeight));
+  const scale = window.devicePixelRatio;
+  canvas.style.width = canvas.style.height = `${size}px`;
+  canvas.width = canvas.height = Math.round(size * scale);
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  update();
+}
+
+new ResizeObserver(resize).observe(stage);
+resize();

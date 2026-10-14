@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
-import { canvasImage, drag, hold, isDisabled, isVisible, launch, selectedText, text } from "./page";
+import { canvasBox, canvasImage, drag, hold, isDisabled, isVisible, launch, resizeWindow, selectedText, swipe, text } from "./page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -154,5 +154,58 @@ describe("the Rule set on the page", () => {
     await page.click("#new-game");
     expect(await isLocked(page)).toBe(false);
     expect(await ruleSet(page)).toBe("Claim");
+  });
+});
+
+describe("touch and resizing on the page", () => {
+  const expectScores = async (page: Page, red: string, blue: string) => {
+    expect(await text(page, "#score-red")).toBe(red);
+    expect(await text(page, "#score-blue")).toBe(blue);
+  };
+
+  it("plays Moves with finger drags in a small window, cancelling them as with a mouse", async () => {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 360, height: 640, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+    await page.goto(inject("baseUrl"));
+
+    const box = await canvasBox(page);
+    expect(box.fits).toBe(true);
+    expect(box.width).toBe(box.height);
+
+    await swipe(page, 0, "centre"); // lifted on empty space
+    await swipe(page, 0, 1); // lifted on a neighbouring Point
+    expect(await text(page, "#turn")).toBe("Red to move");
+    await expectScores(page, "Red 0.0%", "Blue 0.0%");
+
+    await swipe(page, 0, 10);
+    await swipe(page, 5, 15);
+    await swipe(page, 1, 4);
+    expect(await text(page, "#turn")).toBe("Blue to move");
+    await expectScores(page, "Red 26.9%", "Blue 73.1%");
+  });
+
+  it("resizes the canvas with the window and keeps snapping to Points accurate", async () => {
+    const page = await browser.newPage();
+    await page.goto(inject("baseUrl"));
+    const large = await canvasBox(page);
+
+    await drag(page, 0, 10);
+    await resizeWindow(page, 420, 520);
+    const small = await canvasBox(page);
+    expect(small.width).toBeLessThan(large.width);
+    expect(small.width).toBe(small.height);
+    expect(small.fits).toBe(true);
+
+    await drag(page, 5, 15);
+    await drag(page, 1, 4);
+    await expectScores(page, "Red 26.9%", "Blue 73.1%");
+
+    await resizeWindow(page, 1200, 1000);
+    const grown = await canvasBox(page);
+    expect(grown.width).toBeGreaterThan(large.width);
+    expect(grown.fits).toBe(true);
+
+    await drag(page, 3, 9);
+    expect(await text(page, "#turn")).toBe("Red to move");
   });
 });

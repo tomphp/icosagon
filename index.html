@@ -5,12 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Icosagon</title>
     <style>
-      body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 16px; }
-      #hud { display: flex; gap: 24px; align-items: center; font-size: 1.2rem; }
+      html, body { height: 100%; }
+      body {
+        font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center;
+        margin: 0; padding: 16px; box-sizing: border-box;
+      }
+      #hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px; align-items: center; font-size: 1.2rem; }
       #score-red { color: #c62a2f; }
       #score-blue { color: #2f4eb8; }
       #result { margin-top: 12px; font-size: 1.4rem; font-weight: bold; }
-      canvas { touch-action: none; }
+      /* The space left under the HUD; the canvas is sized to the largest square that fits in it. */
+      #stage { overflow: hidden; flex: 1; min-height: 0; align-self: stretch; display: flex; justify-content: center; align-items: center; }
+      canvas { display: block; touch-action: none; }
     </style>
   </head>
   <body>
@@ -27,7 +33,7 @@
       <button id="new-game" type="button">New game</button>
     </div>
     <div id="result" hidden></div>
-    <canvas width="600" height="600"></canvas>
+    <div id="stage"><canvas></canvas></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

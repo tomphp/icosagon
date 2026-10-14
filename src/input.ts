@@ -23,9 +23,12 @@ export function attachInput(canvas: HTMLCanvasElement, layout: () => Layout, han
   };
 
   const pointNear = (pointer: Vec): number | null => {
+    const board = layout();
+    // On a small Board, shrink the hit radius so neighbouring Points' hit areas don't overlap.
+    const radius = Math.min(HIT_RADIUS, board.radius * Math.sin(Math.PI / POINT_COUNT));
     for (let i = 0; i < POINT_COUNT; i++) {
-      const s = pointOnScreen(layout(), i);
-      if (Math.hypot(s.x - pointer.x, s.y - pointer.y) <= HIT_RADIUS) return i;
+      const s = pointOnScreen(board, i);
+      if (Math.hypot(s.x - pointer.x, s.y - pointer.y) <= radius) return i;
     }
     return null;
   };
