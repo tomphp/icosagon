@@ -1,6 +1,6 @@
 # 05: Live drag preview
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** While a drag is in progress, the Line follows the pointer. When the drag is snapped to a legal end Point, the Board shows the Regions and colours that releasing there would produce. Over empty space or an illegal Point, only the Line is shown and the Board keeps its current colours. Add a preview operation to the game module's public interface that returns the resulting Regions without changing the game.
 

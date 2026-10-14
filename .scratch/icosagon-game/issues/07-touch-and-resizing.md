@@ -1,6 +1,6 @@
 # 07: Touch and resizing
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** Make the game playable on touchscreens and at any window size. Finger drags behave exactly like mouse drags, including snapping, preview and cancellation. The canvas resizes to fit the window, and Point snapping stays accurate after a resize.
 

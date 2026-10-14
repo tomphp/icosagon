@@ -1,6 +1,6 @@
 # 02: Turns and Splitting several Regions
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** Make full play work under Full split. Players alternate turns, starting with Red. A Line that crosses earlier Lines Splits every Region it passes through: the left side of each becomes the Mover's colour and the right side the Opponent's. Regions the Line doesn't pass through keep their colour. This must hold when Lines pass through an existing crossing point (for example, several diameters meeting at the centre). The game module rejects illegal Moves: a used Point, the same Point twice, or neighbouring Points. The page shows whose turn it is, and the Scores update after every Move.
 

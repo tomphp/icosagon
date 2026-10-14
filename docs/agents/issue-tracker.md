@@ -18,6 +18,16 @@ Create a new file under `.scratch/<feature-slug>/` (creating the directory if ne
 
 Read the file at the referenced path. The user will normally pass the path or the issue number directly.
 
+## When a ticket is implemented
+
+When the work for an implementation ticket is committed (e.g. at the end of `/implement`):
+
+- Tick every acceptance-criteria checkbox the work satisfies
+- Set `Status: done`
+- Include the ticket file change in the same commit as the work
+
+A ticket is unblocked when every ticket in its `Blocked by:` line is `done` (or `resolved`, for wayfinding tickets).
+
 ## Wayfinding operations
 
 Used by `/wayfinder`. The **map** is a file with one **child** file per ticket.

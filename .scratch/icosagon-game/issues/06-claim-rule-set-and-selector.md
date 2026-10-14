@@ -1,6 +1,6 @@
 # 06: Claim Rule set and selector
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** Add the Claim Rule set. Under Claim, the left side of each Split Region becomes the Mover's colour and the right side keeps its previous colour; an uncoloured right side (only possible on the first Move) becomes the Opponent's colour. Add a Rule set selector to the page. It can be changed before the first Move, locks once the first Line is drawn, shows the current Rule set during play, and unlocks when New game is pressed.
 

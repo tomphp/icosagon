@@ -1,6 +1,6 @@
 # 01: Tracer bullet: draw one Line
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** Set up the project end to end and get the first Move working. Add a Nix dev shell (Node.js), Vite and TypeScript, Vitest, and a Puppeteer test setup that uses the Chromium from Nix. The page draws the Board: a regular icosagon with its 20 Points, numbered 0–19 clockwise from the top. Red can drag from one Point to a legal end Point; the drag snaps to Points within a hit radius. Releasing completes the Move under Full split: the left side (looking from the start Point to the end Point) becomes red and the right side becomes blue. The Scores are shown as percentages in page text.
 

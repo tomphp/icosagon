@@ -1,6 +1,6 @@
 # 04: Invalid drags
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** Make the page behave correctly when a drag isn't a valid Move. Pressing on a used Point, or on empty space, does nothing. Releasing on empty space, on the start Point, on a neighbouring Point, or on a used Point removes the in-progress Line and leaves the Board, the Scores and the turn unchanged, so the same Player can try again.
 

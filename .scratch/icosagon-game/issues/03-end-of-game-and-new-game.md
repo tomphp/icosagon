@@ -1,6 +1,6 @@
 # 03: End of game and New game
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** When the 10th Move is made, every Point has been used and the game ends. A banner announces "Red wins", "Blue wins" or "Draw" (Scores equal within a small relative tolerance) along with the final percentages. The finished Board stays visible but locked: no more drags are accepted. A "New game" button resets to a single uncoloured Region with Red to move.
 
