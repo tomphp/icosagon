@@ -79,6 +79,32 @@ describe("Training", () => {
   });
 });
 
+describe("Continuing a Model", () => {
+  const { model: continued, progress } = trainCollecting({ ...tiny, generations: 3, seed: 5, from: { model, name: "gen-1" } });
+
+  it("starts from the Model's Population as stored", () => {
+    const first = progress[0].ranked.map((r) => r.network);
+    expect(first).toHaveLength(model.population.length);
+    expect(first).toEqual(expect.arrayContaining(model.population));
+  });
+
+  it("adds this run's Generations to the Model's total and records the parent", () => {
+    expect(continued.generations).toBe(2 + 3);
+    expect(continued.parent).toBe("gen-1");
+    expect(continued.seed).toBe(5);
+  });
+
+  it("keeps the Model's Population size and shape, whatever the options say", () => {
+    const { model: resized } = trainCollecting({ ...tiny, population: 6, hidden: 3, from: { model, name: "gen-1" } });
+    expect(resized.population).toHaveLength(4);
+    expect(resized.shape).toEqual(model.shape);
+  });
+
+  it("gives an identical Model for the same seed", () => {
+    expect(train({ ...tiny, generations: 3, seed: 5, from: { model, name: "gen-1" } })).toEqual(continued);
+  });
+});
+
 describe("Training's final report", () => {
   it("plays the best network against Greedy and Random, its counts adding up to the games played", () => {
     for (const results of [model.report!.greedy, model.report!.random]) {

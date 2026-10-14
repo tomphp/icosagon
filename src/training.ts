@@ -5,15 +5,17 @@ import { INPUT_SIZE, type Network } from "./network.ts";
 
 export interface TrainingOptions {
   generations: number;
-  /** How many networks evolve together. */
+  /** How many networks evolve together; when continuing a Model, its Population's size instead. */
   population: number;
-  /** Hidden units per network. */
+  /** Hidden units per network; when continuing a Model, its shape's instead. */
   hidden: number;
   /** The share of the Population that survives each Generation, 0–1; at least one network always does. */
   survivors: number;
   /** The standard deviation of the Gaussian noise added to every weight of a mutated copy. */
   mutation: number;
   seed: number;
+  /** The Model to continue Training from, and its name, recorded as the new Model's parent. */
+  from?: { model: Model; name: string };
   /** How many games the best network plays against each of Greedy and Random at the end; 200 when omitted. */
   reportGames?: number;
   /** Called after each Generation's games. */
@@ -192,15 +194,19 @@ export function match(participants: Strategy[], options: MatchOptions): Pairing[
 }
 
 /**
- * Evolves a fresh Population over the Generations and returns it as a Model, ready for its next
+ * Evolves a Population over the Generations and returns it as a Model, ready for its next
  * Generation: the survivors of the last Generation best first, then their mutated copies in the order
  * of the survivor each was copied from. It ends by playing the best network against Greedy and Random
- * and stores the report. The seed fully determines the result.
+ * and stores the report. The Population starts fresh, or as stored in the `from` Model, whose total
+ * Generations this run's add to. The seed fully determines the result.
  */
 export function train(options: TrainingOptions): Model {
   const random = seeded(options.seed);
-  let population = Array.from({ length: options.population }, () => randomNetwork(options.hidden, random));
-  const survivorCount = Math.max(1, Math.round(options.survivors * options.population));
+  const { from } = options;
+  let population =
+    from?.model.population ?? Array.from({ length: options.population }, () => randomNetwork(options.hidden, random));
+  const size = population.length;
+  const survivorCount = Math.max(1, Math.round(options.survivors * size));
 
   for (let generation = 1; generation <= options.generations; generation++) {
     const { fitness, games } = playGeneration(population, random);
@@ -212,7 +218,7 @@ export function train(options: TrainingOptions): Model {
     const survivors = ranked.slice(0, survivorCount).map(({ network }) => network);
     population = [
       ...survivors,
-      ...Array.from({ length: options.population - survivorCount }, (_, i) =>
+      ...Array.from({ length: size - survivorCount }, (_, i) =>
         mutate(survivors[i % survivorCount], options.mutation, random),
       ),
     ];
@@ -224,5 +230,6 @@ export function train(options: TrainingOptions): Model {
     greedy: playPairing(best, "greedy", reportGames, random)[0],
     random: playPairing(best, "random", reportGames, random)[0],
   };
-  return { ...modelOf(population, options.seed, options.generations), report };
+  const generations = (from?.model.generations ?? 0) + options.generations;
+  return { ...modelOf(population, options.seed, generations), parent: from?.name ?? null, report };
 }
