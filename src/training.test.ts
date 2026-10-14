@@ -76,6 +76,15 @@ describe("Training", () => {
     for (const { games } of progress) expect(games).toBe(6 * 4 + 4 * 4);
   });
 
+  it("reports the Population's average margin against Greedy, which the round-robin games don't affect", () => {
+    for (const { ranked, greedyMargin } of progress) {
+      // The round-robin margins cancel out, and each network's 4 Greedy games are a 1/4 share of its 16.
+      const averageFitness = ranked.reduce((sum, r) => sum + r.fitness, 0) / ranked.length;
+      expect(greedyMargin).toBeCloseTo(averageFitness * 4);
+      expect(Math.abs(greedyMargin)).toBeLessThanOrEqual(1);
+    }
+  });
+
   it("measures Fitness as an average Score margin, between -1 and 1", () => {
     for (const { ranked } of progress) {
       for (const { fitness } of ranked) expect(Math.abs(fitness)).toBeLessThanOrEqual(1);
@@ -108,6 +117,40 @@ describe("Continuing a Model", () => {
 
   it("gives an identical Model for the same seed", async () => {
     expect(await train({ ...tiny, generations: 3, seed: 5, from: { model, name: "gen-1" } })).toEqual(continued);
+  });
+});
+
+describe("Stopping Training early", () => {
+  it("keeps the Generations completed before it was stopped", async () => {
+    const controller = new AbortController();
+    const stopped = await train({
+      ...tiny,
+      generations: 5,
+      signal: controller.signal,
+      onGeneration: ({ generation }) => generation === 2 && controller.abort(),
+    });
+    expect(stopped.generations).toBe(2);
+    expect(stopped.population).toEqual(model.population);
+    expect(stopped.report).not.toBeNull();
+  });
+
+  it("drops the Generation in progress when stopped while its games run in parallel", async () => {
+    const controller = new AbortController();
+    const generationsPlayed: number[] = [];
+    const stopped = await train({
+      ...tiny,
+      generations: 1000,
+      workers: 2,
+      signal: controller.signal,
+      onGeneration: ({ generation }) => {
+        generationsPlayed.push(generation);
+        // Stop during the next Generation's games.
+        if (generation === 3) setTimeout(() => controller.abort(), 5);
+      },
+    });
+    expect(stopped.generations).toBe(generationsPlayed.length);
+    expect(stopped.generations).toBeLessThan(1000);
+    expect(stopped.population).toEqual((await train({ ...tiny, generations: stopped.generations })).population);
   });
 });
 

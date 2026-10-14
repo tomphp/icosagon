@@ -23,6 +23,8 @@ export interface TrainingOptions {
   onGeneration?: (progress: Progress) => void;
   /** How many worker threads play the games; one per core when omitted, and 1 plays them all on this thread. */
   workers?: number;
+  /** Stops Training early, keeping the Generations completed so far. */
+  signal?: AbortSignal;
 }
 
 export const TRAINING_DEFAULTS = { population: 24, hidden: 32, survivors: 0.25, mutation: 0.05, reportGames: 200 } as const;
@@ -33,6 +35,8 @@ export interface Progress {
   generation: number;
   /** Every network in the Population with its Fitness, best first. */
   ranked: { network: Network; fitness: number }[];
+  /** The Population's average Score margin over its games against Greedy. */
+  greedyMargin: number;
   /** How many games the Generation played. */
   games: number;
 }
@@ -100,28 +104,38 @@ function schedule(size: number, random: Random): GameSpec[] {
   );
 }
 
-/** Each network's Fitness: its average Score margin over a Generation's games. */
+/** Each network's Fitness, its average Score margin over a Generation's games, and the Population's average margin against Greedy. */
 async function playGeneration(
   population: Network[],
   random: Random,
   pool: GamePool,
-): Promise<{ fitness: number[]; games: number }> {
+  signal?: AbortSignal,
+): Promise<{ fitness: number[]; greedyMargin: number; games: number }> {
   // Greedy plays after the Population's networks and has no Fitness.
   const greedy = population.length;
   const totals = population.map(() => ({ margin: 0, games: 0 }));
-  const add = (contender: number, margin: number) => {
+  const vsGreedy = { margin: 0, games: 0 };
+  const add = (contender: number, opponent: number, margin: number) => {
     if (contender === greedy) return;
     totals[contender].margin += margin;
     totals[contender].games++;
+    if (opponent === greedy) {
+      vsGreedy.margin += margin;
+      vsGreedy.games++;
+    }
   };
   const games = schedule(population.length, random);
-  const played = await pool.play([...population.map(neural), "greedy"], games);
+  const played = await pool.play([...population.map(neural), "greedy"], games, signal);
   games.forEach(({ red, blue }, i) => {
     const { scores } = played[i];
-    add(red, scores.red - scores.blue);
-    add(blue, scores.blue - scores.red);
+    add(red, blue, scores.red - scores.blue);
+    add(blue, red, scores.blue - scores.red);
   });
-  return { fitness: totals.map(({ margin, games }) => margin / games), games: games.length };
+  return {
+    fitness: totals.map(({ margin, games }) => margin / games),
+    greedyMargin: vsGreedy.margin / vsGreedy.games,
+    games: games.length,
+  };
 }
 
 /** How each participant of a pairing did, from its own point of view. */
@@ -209,6 +223,9 @@ async function playGroups(pool: GamePool, strategies: Strategy[], groups: GameSp
  * of the survivor each was copied from. It ends by playing the best network against Greedy and Random
  * and stores the report. The Population starts fresh, or as stored in the `from` Model, whose total
  * Generations this run's add to. The seed fully determines the result.
+ *
+ * When the signal is aborted, the Generation in progress is dropped and Training ends as if it had been asked
+ * for only the Generations it completed, though the final report's games differ.
  */
 export async function train(options: TrainingOptions): Promise<Model> {
   const random = seeded(options.seed);
@@ -219,12 +236,21 @@ export async function train(options: TrainingOptions): Promise<Model> {
   const survivorCount = Math.max(1, Math.round(options.survivors * size));
   const pool = gamePool(options.workers);
   try {
+    let completed = 0;
     for (let generation = 1; generation <= options.generations; generation++) {
-      const { fitness, games } = await playGeneration(population, random, pool);
+      let played;
+      try {
+        played = await playGeneration(population, random, pool, options.signal);
+      } catch (error) {
+        // Stopped: the Generation in progress is dropped, and the last complete one stands.
+        if (options.signal?.aborted) break;
+        throw error;
+      }
+      const { fitness, greedyMargin, games } = played;
       const ranked = population
         .map((network, i) => ({ network, fitness: fitness[i] }))
         .sort((a, b) => b.fitness - a.fitness);
-      options.onGeneration?.({ generation, ranked, games });
+      options.onGeneration?.({ generation, ranked, greedyMargin, games });
 
       const survivors = ranked.slice(0, survivorCount).map(({ network }) => network);
       population = [
@@ -233,6 +259,7 @@ export async function train(options: TrainingOptions): Promise<Model> {
           mutate(survivors[i % survivorCount], options.mutation, random),
         ),
       ];
+      completed = generation;
     }
 
     // The best network, then Greedy and Random.
@@ -243,7 +270,7 @@ export async function train(options: TrainingOptions): Promise<Model> {
       [pairingGames(0, 1, reportGames, random), pairingGames(0, 2, reportGames, random)],
     );
     const report = { greedy: pairResults(vsGreedy)[0], random: pairResults(vsRandom)[0] };
-    const generations = (from?.model.generations ?? 0) + options.generations;
+    const generations = (from?.model.generations ?? 0) + completed;
     return { ...modelOf(population, options.seed, generations), parent: from?.name ?? null, report };
   } finally {
     await pool.close();

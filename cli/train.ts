@@ -60,6 +60,17 @@ const mutation = numberFlag("mutation", values.mutation, between(0, Infinity), T
 console.log(`Seed ${seed}`);
 if (from) console.log(`Continuing ${from.name} (${from.model.generations} gens)`);
 
+/** The margin with its sign, to 4 decimal places. */
+const signed = (margin: number) => (margin >= 0 ? "+" : "") + margin.toFixed(4);
+
+// The first Ctrl-C stops after the last complete Generation and still writes the Model; a second quits at once.
+const stop = new AbortController();
+process.on("SIGINT", () => {
+  if (stop.signal.aborted) process.exit(130);
+  console.log("Stopping: dropping the Generation in progress. Ctrl-C again to quit without writing.");
+  stop.abort();
+});
+
 let games = 0;
 const model = await train({
   generations,
@@ -69,18 +80,20 @@ const model = await train({
   mutation,
   seed,
   from,
+  signal: stop.signal,
   onGeneration: (progress) => {
     games += progress.games;
     const fitness = progress.ranked.map((r) => r.fitness);
     const average = fitness.reduce((sum, f) => sum + f, 0) / fitness.length;
     console.log(
-      `Generation ${progress.generation}/${generations}: best ${fitness[0].toFixed(4)}, average ${average.toFixed(4)}`,
+      `Generation ${progress.generation}/${generations}: best ${fitness[0].toFixed(4)}, average ${average.toFixed(4)}, vs greedy ${signed(progress.greedyMargin)}`,
     );
   },
 });
+if (stop.signal.aborted) console.log(`Stopped after ${model.generations - (from?.model.generations ?? 0)} of ${generations} Generations`);
 
 for (const [opponent, r] of Object.entries(model.report!)) {
-  const margin = (r.margin >= 0 ? "+" : "") + r.margin.toFixed(4);
+  const margin = signed(r.margin);
   console.log(`Best vs ${opponent}: ${r.wins} wins, ${r.draws} draws, ${r.losses} losses, average margin ${margin}`);
   games += r.wins + r.draws + r.losses;
 }

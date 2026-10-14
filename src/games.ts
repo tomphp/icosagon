@@ -43,35 +43,59 @@ export const playHere = (strategies: Strategy[], games: GameSpec[]): Played[] =>
 
 /** Plays batches of games, possibly across worker threads, until closed. */
 export interface GamePool {
-  /** Plays the games and returns how each ended, in order. */
-  play(strategies: Strategy[], games: GameSpec[]): Promise<Played[]>;
+  /**
+   * Plays the games and returns how each ended, in order. Rejects with the signal's reason if it is
+   * aborted first, leaving the pool ready for another batch.
+   */
+  play(strategies: Strategy[], games: GameSpec[], signal?: AbortSignal): Promise<Played[]>;
   close(): Promise<void>;
 }
 
 /**
- * A pool of games spread across `workers` threads, one per core when omitted; 1 plays every game on this thread.
- * Each game has its own seed, so how it ends doesn't depend on which thread plays it.
+ * A pool of games spread across `workers` threads, one per core when omitted; 1 plays every game on this thread,
+ * so it can only be aborted between batches. Each game has its own seed, so how it ends doesn't depend on which
+ * thread plays it.
  */
 export function gamePool(workers = availableParallelism()): GamePool {
-  if (workers <= 1) return { play: async (strategies, games) => playHere(strategies, games), close: async () => {} };
+  if (workers <= 1) {
+    return {
+      async play(strategies, games, signal) {
+        signal?.throwIfAborted();
+        return playHere(strategies, games);
+      },
+      close: async () => {},
+    };
+  }
 
-  const threads = Array.from({ length: workers }, () => new Worker(new URL("./games-worker.ts", import.meta.url)));
+  const spawn = () => Array.from({ length: workers }, () => new Worker(new URL("./games-worker.ts", import.meta.url)));
+  let threads = spawn();
+  const close = async () => {
+    await Promise.all(threads.map((thread) => thread.terminate()));
+  };
   return {
-    async play(strategies, games) {
-      // Dealt out in turn, so each thread gets a similar mix of slow Neural and quick Greedy and Random games.
-      const played = await Promise.all(
-        threads.map(async (thread, t) => {
-          const dealt = games.filter((_, i) => i % workers === t);
-          if (dealt.length === 0) return [];
-          thread.postMessage({ strategies, games: dealt });
-          const [results] = await once(thread, "message");
-          return results as Played[];
-        }),
-      );
-      return games.map((_, i) => played[i % workers][Math.floor(i / workers)]);
+    async play(strategies, games, signal) {
+      signal?.throwIfAborted();
+      try {
+        // Dealt out in turn, so each thread gets a similar mix of slow Neural and quick Greedy and Random games.
+        const played = await Promise.all(
+          threads.map(async (thread, t) => {
+            const dealt = games.filter((_, i) => i % workers === t);
+            if (dealt.length === 0) return [];
+            thread.postMessage({ strategies, games: dealt });
+            const [results] = await once(thread, "message", { signal });
+            return results as Played[];
+          }),
+        );
+        return games.map((_, i) => played[i % workers][Math.floor(i / workers)]);
+      } catch (error) {
+        // The threads are still playing the abandoned batch, so fresh ones take their place.
+        if (signal?.aborted) {
+          await close();
+          threads = spawn();
+        }
+        throw error;
+      }
     },
-    async close() {
-      await Promise.all(threads.map((thread) => thread.terminate()));
-    },
+    close,
   };
 }
