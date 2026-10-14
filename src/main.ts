@@ -1,3 +1,4 @@
+import { chooseMove } from "./computer";
 import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Ending, type Game, type Outcome, type Player } from "./game";
 import { attachInput } from "./input";
 import { boardLayout } from "./layout";
@@ -11,7 +12,10 @@ const scoreBlue = document.querySelector("#score-blue")!;
 const turn = document.querySelector("#turn")!;
 const result = document.querySelector<HTMLElement>("#result")!;
 const newGame = document.querySelector("#new-game")!;
+const you = document.querySelector<HTMLElement>("#you")!;
 const endingSelect = document.querySelector<HTMLSelectElement>("#ending")!;
+const opponentSelect = document.querySelector<HTMLSelectElement>("#opponent")!;
+const selectors = [opponentSelect, endingSelect];
 /** The Ending chosen in the selector; its option values are the Ending names. */
 const selectedEnding = () => endingSelect.value as Ending;
 
@@ -19,8 +23,25 @@ const selectedEnding = () => endingSelect.value as Ending;
 let size = 0;
 const layout = () => boardLayout(size, size);
 
-let game: Game = createGame(selectedEnding());
+let game: Game;
+/** The Player the Computer controls, or null in Human vs Human. */
+let computer: Player | null;
 let drag: DragView | null = null;
+
+/** Plays the Computer's Move if it is the Mover. */
+function playComputer() {
+  if (game.outcome === "in-progress" && game.mover === computer) {
+    game = applyMove(game, chooseMove(game, "random", Math.random));
+  }
+}
+
+/** Starts a game with the selected settings; against the Computer, a coin flip gives it Red or Blue. */
+function startGame() {
+  game = createGame(selectedEnding());
+  computer = opponentSelect.value === "computer" ? (Math.random() < 0.5 ? "blue" : "red") : null;
+  drag = null;
+  playComputer();
+}
 
 const NAME: Record<Player, string> = { red: "Red", blue: "Blue" };
 const RESULT: Record<Exclude<Outcome, "in-progress">, string> = {
@@ -44,10 +65,14 @@ function update() {
   const blue = `Blue ${percent(game.scores.blue)}`;
   scoreRed.textContent = red;
   scoreBlue.textContent = blue;
-  // The Ending is fixed once the first Line is drawn.
-  endingSelect.disabled = game.moves.length > 0;
+  // The settings are fixed once the Human has drawn a Line; the Computer's opening Move as Red doesn't count.
+  const humanMoved = game.moves.length > (computer === "red" ? 1 : 0);
+  for (const select of selectors) select.disabled = humanMoved;
+  const human: Player | null = computer && (computer === "red" ? "blue" : "red");
+  you.hidden = human === null;
+  if (human) you.textContent = `You are ${NAME[human]}`;
   if (game.outcome === "in-progress") {
-    turn.textContent = `${NAME[game.mover]} to move`;
+    turn.textContent = human ? `Your move (${NAME[game.mover]})` : `${NAME[game.mover]} to move`;
     result.hidden = true;
   } else {
     turn.textContent = gameOverText(game);
@@ -56,14 +81,15 @@ function update() {
   }
 }
 
-endingSelect.addEventListener("change", () => {
-  game = createGame(selectedEnding());
-  update();
-});
+for (const select of selectors) {
+  select.addEventListener("change", () => {
+    startGame();
+    update();
+  });
+}
 
 newGame.addEventListener("click", () => {
-  game = createGame(game.ending);
-  drag = null;
+  startGame();
   update();
 });
 
@@ -77,7 +103,10 @@ attachInput(canvas, layout, {
   },
   dragReleased(start, end) {
     drag = null;
-    if (end !== null) game = applyMove(game, { start, end });
+    if (end !== null) {
+      game = applyMove(game, { start, end });
+      playComputer();
+    }
     update();
   },
 });
@@ -92,5 +121,6 @@ function resize() {
   update();
 }
 
+startGame();
 new ResizeObserver(resize).observe(stage);
 resize();

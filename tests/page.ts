@@ -93,3 +93,14 @@ export function selectedText(page: Page, selector: string) {
 export function isDisabled(page: Page, selector: string) {
   return page.$eval(selector, (el) => (el as HTMLSelectElement).disabled);
 }
+
+/**
+ * Makes `Math.random` return the values in order, then keep returning the last one. Must be called
+ * before the page loads.
+ */
+export function stubRandom(page: Page, values: number[]) {
+  return page.evaluateOnNewDocument((values) => {
+    let i = 0;
+    Math.random = () => values[Math.min(i++, values.length - 1)];
+  }, values);
+}

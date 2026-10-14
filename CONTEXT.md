@@ -51,3 +51,21 @@ The Ending where the Player who cannot move simply misses the Move; the Regions 
 
 **Score**:
 A Player's total coloured area. The Player with the larger Score wins; equal Scores are a **Draw**.
+
+### Who plays
+
+**Human**:
+A person controlling a Player by drawing Lines on the Board.
+
+**Computer**:
+The program controlling a Player, choosing each Move by its Strategy. In a game against the Computer, a coin flip decides whether the Human is Red or Blue.
+_Avoid_: AI, bot, CPU
+
+**Strategy**:
+How the Computer chooses its Move. Either **Random** or **Greedy**.
+
+**Random**:
+The Strategy that picks uniformly among all legal Moves, counting `3→12` and `12→3` as different Moves.
+
+**Greedy**:
+The Strategy that picks the Move giving the Mover the highest Score once it is made, including any Award that ends the game. Ties are broken at random.
