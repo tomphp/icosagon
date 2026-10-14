@@ -1,5 +1,5 @@
-import type { Strategy } from "./computer";
-import { INPUT_SIZE, type Network } from "./network";
+import type { Strategy } from "./computer.ts";
+import { INPUT_SIZE, type Network } from "./network.ts";
 
 /** The Model format version. It changes whenever the network's inputs or the file layout do. */
 export const MODEL_VERSION = 1;
@@ -90,4 +90,9 @@ export function neuralOptions(files: Record<string, unknown>, warn: (message: st
       return [];
     }
   });
+}
+
+/** The Model as JSON, its numbers rounded to keep the file small. */
+export function saveModel(model: Model): string {
+  return JSON.stringify(model, (_, value) => (typeof value === "number" ? Math.round(value * 1e4) / 1e4 : value));
 }

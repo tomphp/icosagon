@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
-import { chooseMove } from "../src/computer";
-import { applyMove, createGame, type Ending, type Game, type Move, type Player } from "../src/game";
-import { drag, isDisabled, isVisible, launch, selectedText, stubRandom, text } from "./page";
+import { chooseMove } from "../src/computer.ts";
+import { applyMove, createGame, type Ending, type Game, type Move, type Player } from "../src/game.ts";
+import { drag, isDisabled, isVisible, launch, selectedText, stubRandom, text } from "./page.ts";
 
 let browser: Browser;
 beforeAll(async () => {

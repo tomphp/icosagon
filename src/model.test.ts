@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { loadModel, MODEL_VERSION, neuralOptions } from "./model";
-import { INPUT_SIZE } from "./network";
+import { loadModel, MODEL_VERSION, neuralOptions, saveModel } from "./model.ts";
+import { INPUT_SIZE } from "./network.ts";
 
 const network = (hidden: number, inputs = INPUT_SIZE) => ({
   hiddenWeights: Array.from({ length: hidden }, () => Array(inputs).fill(0.5)),
@@ -53,6 +53,17 @@ describe("loading a Model", () => {
   it("rejects something that isn't a Model at all", () => {
     expect(() => loadModel(null)).toThrow();
     expect(() => loadModel("gen-1")).toThrow();
+  });
+});
+
+describe("saving a Model", () => {
+  it("gives JSON that loads again, with weights rounded and whole numbers kept", () => {
+    const model = loadModel(document({ seed: 4294967295, population: [{ ...network(2), outputBias: 0.123456789 }] }));
+    const saved = JSON.parse(saveModel(model));
+
+    expect(loadModel(saved).population[0].outputBias).toBe(0.1235);
+    expect(saved.seed).toBe(4294967295);
+    expect(saved.generations).toBe(7);
   });
 });
 

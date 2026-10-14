@@ -1,6 +1,6 @@
-import { POINT_COUNT, type Vec } from "./geometry";
-import { usedPoints, type Game, type Player, type Region } from "./game";
-import { pointOnScreen, toScreen, type Layout } from "./layout";
+import { POINT_COUNT, type Vec } from "./geometry.ts";
+import { usedPoints, type Game, type Player, type Region } from "./game.ts";
+import { pointOnScreen, toScreen, type Layout } from "./layout.ts";
 
 export interface DragView {
   start: number;

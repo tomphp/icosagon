@@ -1,5 +1,5 @@
 import puppeteer, { type Browser, type Page } from "puppeteer-core";
-import { boardLayout, pointOnScreen as pointOnCanvas } from "../src/layout";
+import { boardLayout, pointOnScreen as pointOnCanvas } from "../src/layout.ts";
 
 export async function launch(): Promise<Browser> {
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;

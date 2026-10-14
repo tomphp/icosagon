@@ -1,5 +1,5 @@
-import { POINT_COUNT, side, type Vec } from "./geometry";
-import { opponentOf, usedPoints, type Game, type Player } from "./game";
+import { POINT_COUNT, side, type Vec } from "./geometry.ts";
+import { opponentOf, usedPoints, type Game, type Player } from "./game.ts";
 
 /**
  * A fully connected network with one tanh hidden layer that rates a position. Weights are plain

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { chooseMove, type Strategy } from "./computer";
-import { applyMove, createGame, isLegalMove, type Ending, type Game, type Move } from "./game";
-import { POINT_COUNT } from "./geometry";
-import { MODEL_VERSION, type Model } from "./model";
-import { INPUT, INPUT_SIZE, type Network } from "./network";
+import { chooseMove, type Strategy } from "./computer.ts";
+import { applyMove, createGame, isLegalMove, type Ending, type Game, type Move } from "./game.ts";
+import { POINT_COUNT } from "./geometry.ts";
+import { MODEL_VERSION, type Model } from "./model.ts";
+import { INPUT, INPUT_SIZE, type Network } from "./network.ts";
 
 /** The game after playing Moves written as [start, end] pairs from a fresh game with the Ending. */
 const playWith = (ending: Ending, ...moves: [number, number][]) =>

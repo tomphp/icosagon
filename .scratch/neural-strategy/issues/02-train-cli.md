@@ -1,6 +1,6 @@
 # 02: `train` CLI: evolve a fresh Population
 
-Status: ready-for-agent
+Status: done
 
 **What to build:** A `train` command, run as an npm script with Node from the dev shell, that produces a Model entirely in memory. It's a thin wrapper around a Training module function, `train(options) → Model`, which is deterministic for a given seed.
 
@@ -29,11 +29,11 @@ See `.scratch/neural-strategy/spec.md` and `CONTEXT.md`.
 
 **Blocked by:** 01 (Play against a Neural Model on the page).
 
-- [ ] `train` CLI with the flags above writes a Model that the page offers and can play
-- [ ] Same seed gives an identical Model; a different seed gives a different one
-- [ ] Population size is preserved and stored best first by Fitness
-- [ ] Survivors appear unchanged in the next Generation
-- [ ] Each Generation's games are the round-robin under both colours and both Endings plus 4 Greedy games per network
-- [ ] Best and average Fitness are printed each Generation; the game count at the end
-- [ ] A random seed is chosen, printed and saved when `--seed` is omitted
-- [ ] Unit tests on `train` with tiny settings (e.g. population 4, 2 Generations)
+- [x] `train` CLI with the flags above writes a Model that the page offers and can play
+- [x] Same seed gives an identical Model; a different seed gives a different one
+- [x] Population size is preserved and stored best first by Fitness
+- [x] Survivors appear unchanged in the next Generation
+- [x] Each Generation's games are the round-robin under both colours and both Endings plus 4 Greedy games per network
+- [x] Best and average Fitness are printed each Generation; the game count at the end
+- [x] A random seed is chosen, printed and saved when `--seed` is omitted
+- [x] Unit tests on `train` with tiny settings (e.g. population 4, 2 Generations)

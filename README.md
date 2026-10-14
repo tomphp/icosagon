@@ -38,3 +38,4 @@ Enter the dev shell with `nix develop` (provides Node.js and Chromium), run `npm
 - `npm test`: run the unit tests
 - `npm run test:browser`: run the browser tests (Puppeteer, using the Chromium from Nix)
 - `npm run typecheck` / `npm run build`
+- `npm run train -- --generations N --out models/NAME.json`: train a Neural Model (also `--population`, `--hidden`, `--survivors`, `--mutation`, `--seed`)

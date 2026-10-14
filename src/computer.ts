@@ -1,7 +1,7 @@
-import { applyMove, isLegalMove, type Game, type Move } from "./game";
-import { POINT_COUNT } from "./geometry";
-import type { Model } from "./model";
-import { rate } from "./network";
+import { applyMove, isLegalMove, type Game, type Move } from "./game.ts";
+import { POINT_COUNT } from "./geometry.ts";
+import type { Model } from "./model.ts";
+import { rate } from "./network.ts";
 
 /** How the Computer chooses its Move: by name, or Neural with the Model it plays. */
 export type Strategy = "random" | "greedy" | { kind: "neural"; model: Model };

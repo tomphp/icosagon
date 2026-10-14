@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMove, createGame, isLegalMove, previewMove, type Ending, type Game } from "./game";
+import { applyMove, createGame, isLegalMove, previewMove, type Ending, type Game } from "./game.ts";
 
 describe("a fresh game", () => {
   it("has one uncoloured Region, Red to move and Scores of 0/0", () => {

@@ -1,5 +1,5 @@
-import { POINT_COUNT, type Vec } from "./geometry";
-import { pointOnScreen, type Layout } from "./layout";
+import { POINT_COUNT, type Vec } from "./geometry.ts";
+import { pointOnScreen, type Layout } from "./layout.ts";
 
 const HIT_RADIUS = 20;
 

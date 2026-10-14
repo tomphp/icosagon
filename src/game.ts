@@ -1,4 +1,4 @@
-import { POINT_COUNT, boardPolygon, pointPosition, polygonArea, splitPolygon, type Vec } from "./geometry";
+import { POINT_COUNT, boardPolygon, pointPosition, polygonArea, splitPolygon, type Vec } from "./geometry.ts";
 
 export type Player = "red" | "blue";
 /** What happens to a Mover with no legal Move: take the Region beside the unused Points, or miss the Move. */

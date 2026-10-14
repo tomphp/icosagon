@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
-import { canvasBox, canvasImage, drag, hold, isDisabled, isVisible, launch, resizeWindow, selectedText, swipe, text } from "./page";
+import { canvasBox, canvasImage, drag, hold, isDisabled, isVisible, launch, resizeWindow, selectedText, swipe, text } from "./page.ts";
 
 let browser: Browser;
 beforeAll(async () => {

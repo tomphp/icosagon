@@ -1,4 +1,4 @@
-import { pointPosition, type Vec } from "./geometry";
+import { pointPosition, type Vec } from "./geometry.ts";
 
 /** How the unit Board maps onto a canvas of the given CSS size. */
 export function boardLayout(width: number, height: number) {

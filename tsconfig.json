@@ -8,7 +8,9 @@
     "strict": true,
     "noEmit": true,
     "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
-  "include": ["src", "tests", "*.ts"]
+  "include": ["src", "tests", "cli", "*.ts"]
 }

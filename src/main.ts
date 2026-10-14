@@ -1,9 +1,9 @@
-import { chooseMove, type Strategy } from "./computer";
-import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Ending, type Game, type Outcome, type Player } from "./game";
-import { attachInput } from "./input";
-import { boardLayout } from "./layout";
-import { neuralOptions } from "./model";
-import { render, type DragView } from "./render";
+import { chooseMove, type Strategy } from "./computer.ts";
+import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Ending, type Game, type Outcome, type Player } from "./game.ts";
+import { attachInput } from "./input.ts";
+import { boardLayout } from "./layout.ts";
+import { neuralOptions } from "./model.ts";
+import { render, type DragView } from "./render.ts";
 
 const canvas = document.querySelector("canvas")!;
 const ctx = canvas.getContext("2d")!;
