@@ -12,3 +12,7 @@ See `.scratch/icosagon-game/spec.md` and `CONTEXT.md`.
 - [ ] The canvas resizes with the window and the Board stays a regular icosagon
 - [ ] Snapping to Points works correctly after a resize
 - [ ] Browser test: a Move made with touch input in a small window gives the expected Scores
+
+## Comments
+
+- From the review of 01: `main.ts` builds the layout from `canvas.width/height` (backing pixels), while `input.ts` and the browser tests measure in CSS pixels from `getBoundingClientRect`. They agree only because the canvas is a fixed 600×600 with no CSS scaling or devicePixelRatio. Use one coordinate system when the canvas starts resizing.

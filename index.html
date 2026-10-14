@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Icosagon</title>
+    <style>
+      body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 16px; }
+      #hud { display: flex; gap: 24px; font-size: 1.2rem; }
+      #score-red { color: #c62a2f; }
+      #score-blue { color: #2f4eb8; }
+      canvas { touch-action: none; }
+    </style>
+  </head>
+  <body>
+    <div id="hud">
+      <span id="turn"></span>
+      <span id="score-red"></span>
+      <span id="score-blue"></span>
+    </div>
+    <canvas width="600" height="600"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

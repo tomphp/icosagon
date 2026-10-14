@@ -10,9 +10,9 @@ See `.scratch/icosagon-game/spec.md` and `CONTEXT.md`.
 
 **Blocked by:** None (can start immediately).
 
-- [ ] The Nix dev shell provides Node.js; there are commands to start the dev server, run unit tests, and run browser tests
-- [ ] The Board renders as a regular icosagon with 20 Points, with Point 0 at the top
-- [ ] Dragging from one Point to a non-adjacent Point and releasing draws the Line and Splits the Board into a red side and a blue side
-- [ ] Scores are shown as page text with stable identifiers
-- [ ] Unit test (game module): a diameter Splits the Board 50/50 with the left side going to the Mover; reversing its direction swaps the colours
-- [ ] Browser test: one real drag on the page results in Scores of 50% / 50%
+- [x] The Nix dev shell provides Node.js; there are commands to start the dev server, run unit tests, and run browser tests
+- [x] The Board renders as a regular icosagon with 20 Points, with Point 0 at the top
+- [x] Dragging from one Point to a non-adjacent Point and releasing draws the Line and Splits the Board into a red side and a blue side
+- [x] Scores are shown as page text with stable identifiers
+- [x] Unit test (game module): a diameter Splits the Board 50/50 with the left side going to the Mover; reversing its direction swaps the colours
+- [x] Browser test: one real drag on the page results in Scores of 50% / 50%

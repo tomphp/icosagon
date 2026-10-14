@@ -15,3 +15,7 @@ See `.scratch/icosagon-game/spec.md` and `CONTEXT.md`.
 - [ ] Unit tests: several diameters through the centre give correct Regions and Scores
 - [ ] Unit tests: Moves using a used Point, the same Point twice, or neighbouring Points are rejected
 - [ ] Unit test: after the first Move, total coloured area always equals the Board's area
+
+## Comments
+
+- From the review of 01: `isLegalMove` and its tests (same Point, adjacent, used Point) already exist, and so does a `#turn` indicator. `applyMove` does not yet reject illegal Moves: the page checks `isLegalMove` first, but the spec wants the game module itself to reject them.
