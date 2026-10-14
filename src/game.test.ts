@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMove, createGame, isLegalMove } from "./game";
+import { applyMove, createGame, isLegalMove, type Game } from "./game";
 
 describe("a fresh game", () => {
   it("has one uncoloured Region, Red to move and Scores of 0/0", () => {
@@ -13,11 +13,20 @@ describe("a fresh game", () => {
   });
 });
 
-/** The colour of the Region that has a corner at (x, y) on the unit Board. */
-function colourAt(game: ReturnType<typeof createGame>, x: number, y: number) {
-  const region = game.regions.find((r) =>
-    r.polygon.some((p) => Math.hypot(p.x - x, p.y - y) < 1e-9),
-  );
+/**
+ * The colour of the Region containing the spot at `scale` × the distance from the centre to
+ * Point p (Points numbered 0–19 clockwise from the top of the unit Board).
+ */
+function colourNear(game: Game, p: number, scale = 0.9) {
+  const angle = ((-90 + p * 18) * Math.PI) / 180;
+  const spot = { x: scale * Math.cos(angle), y: scale * Math.sin(angle) };
+  const region = game.regions.find((r) => {
+    const sides = r.polygon.map((a, i) => {
+      const b = r.polygon[(i + 1) % r.polygon.length];
+      return Math.sign((b.x - a.x) * (spot.y - a.y) - (b.y - a.y) * (spot.x - a.x));
+    });
+    return sides.every((s) => s >= 0) || sides.every((s) => s <= 0);
+  });
   return region?.colour;
 }
 
@@ -30,15 +39,15 @@ describe("a diameter", () => {
     expect(game.regions).toHaveLength(2);
     expect(game.scores.red).toBeCloseTo(0.5);
     expect(game.scores.blue).toBeCloseTo(0.5);
-    expect(colourAt(game, 1, 0)).toBe("red");
-    expect(colourAt(game, -1, 0)).toBe("blue");
+    expect(colourNear(game, 5)).toBe("red");
+    expect(colourNear(game, 15)).toBe("blue");
   });
 
   it("drawn in the opposite direction gives the opposite colouring", () => {
     const game = applyMove(createGame("full-split"), { start: 10, end: 0 });
 
-    expect(colourAt(game, 1, 0)).toBe("blue");
-    expect(colourAt(game, -1, 0)).toBe("red");
+    expect(colourNear(game, 5)).toBe("blue");
+    expect(colourNear(game, 15)).toBe("red");
   });
 
   it("passes the turn to Blue and records the Move", () => {
@@ -68,5 +77,87 @@ describe("Move legality", () => {
     const game = applyMove(createGame("full-split"), { start: 0, end: 10 });
     expect(isLegalMove(game, { start: 10, end: 3 })).toBe(false);
     expect(isLegalMove(game, { start: 3, end: 0 })).toBe(false);
+  });
+});
+
+describe("applying an illegal Move", () => {
+  it("is rejected for the same Point twice, neighbouring Points or a used Point", () => {
+    const fresh = createGame("full-split");
+    expect(() => applyMove(fresh, { start: 4, end: 4 })).toThrow();
+    expect(() => applyMove(fresh, { start: 4, end: 5 })).toThrow();
+    expect(() => applyMove(fresh, { start: 19, end: 0 })).toThrow();
+
+    const afterOne = applyMove(fresh, { start: 0, end: 10 });
+    expect(() => applyMove(afterOne, { start: 10, end: 3 })).toThrow();
+    expect(() => applyMove(afterOne, { start: 3, end: 0 })).toThrow();
+  });
+});
+
+/**
+ * Plays Moves written as [start, end] pairs from a fresh Full split game, returning the game
+ * before any Move and after each one.
+ */
+function playEach(...moves: [number, number][]) {
+  const games = [createGame("full-split")];
+  for (const [start, end] of moves) games.push(applyMove(games[games.length - 1], { start, end }));
+  return games;
+}
+
+/** The game after playing all the Moves. */
+const play = (...moves: [number, number][]) => playEach(...moves).at(-1)!;
+
+describe("turns", () => {
+  it("alternate Red, Blue, Red, …", () => {
+    const movers = playEach([0, 10], [5, 15], [2, 12], [7, 17]).map((game) => game.mover);
+    expect(movers).toEqual(["red", "blue", "red", "blue", "red"]);
+  });
+});
+
+describe("crossing Lines", () => {
+  it("two crossing diameters give four Regions coloured by the second Move", () => {
+    // Blue draws 5→15 (right to left): its left side is the bottom half of the Board.
+    const game = play([0, 10], [5, 15]);
+
+    expect(game.regions).toHaveLength(4);
+    expect(colourNear(game, 2)).toBe("red"); // top right
+    expect(colourNear(game, 18)).toBe("red"); // top left
+    expect(colourNear(game, 8)).toBe("blue"); // bottom right
+    expect(colourNear(game, 12)).toBe("blue"); // bottom left
+  });
+
+  it("only Split the Regions they pass through", () => {
+    // 1→4 cuts off a corner of the top-right Region; the other three Regions keep their colour.
+    const game = play([0, 10], [5, 15], [1, 4]);
+
+    expect(game.regions).toHaveLength(5);
+    expect(colourNear(game, 2, 0.97)).toBe("red"); // the cut-off corner, Red's left side
+    expect(colourNear(game, 2, 0.5)).toBe("blue"); // the rest of the top-right Region
+    expect(colourNear(game, 18)).toBe("red");
+    expect(colourNear(game, 8)).toBe("blue");
+    expect(colourNear(game, 12)).toBe("blue");
+  });
+});
+
+describe("several diameters through the centre", () => {
+  it("give one Region per sector, with the expected colours and Scores", () => {
+    // A Line i→j has the Points clockwise between i and j on its left.
+    const game = play([0, 10], [5, 15], [2, 12], [7, 17]);
+
+    expect(game.regions).toHaveLength(8);
+    const colours = [1, 3, 6, 8, 11, 13, 16, 18].map((p) => colourNear(game, p));
+    expect(colours).toEqual(["blue", "red", "red", "blue", "red", "blue", "blue", "red"]);
+    expect(game.scores.red).toBeCloseTo(0.5);
+    expect(game.scores.blue).toBeCloseTo(0.5);
+  });
+});
+
+describe("total coloured area", () => {
+  it("equals the Board's area after every Move", () => {
+    const games = playEach(
+      [0, 10], [5, 15], [2, 12], [7, 17], [1, 4], [3, 9], [6, 13], [8, 18], [11, 16], [14, 19],
+    );
+    for (const game of games.slice(1)) {
+      expect(game.scores.red + game.scores.blue).toBeCloseTo(1, 9);
+    }
   });
 });

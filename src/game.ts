@@ -52,6 +52,7 @@ function scoresOf(regions: Region[]): Scores {
 }
 
 export function applyMove(game: Game, move: Move): Game {
+  if (!isLegalMove(game, move)) throw new Error(`Illegal Move ${move.start}→${move.end}`);
   const mover = game.mover;
   const opponent = opponentOf(mover);
   const a = pointPosition(move.start);

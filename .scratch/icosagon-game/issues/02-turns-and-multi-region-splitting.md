@@ -8,13 +8,13 @@ See `.scratch/icosagon-game/spec.md` and `CONTEXT.md`.
 
 **Blocked by:** 01 (Tracer bullet: draw one Line).
 
-- [ ] Turns alternate Red, Blue, Red, …, and the turn indicator shows whose turn it is as page text
-- [ ] A Line crossing earlier Lines Splits every Region it passes through, coloured according to Full split
-- [ ] Regions the Line doesn't pass through keep their colour
-- [ ] Unit tests: two crossing Lines give four Regions with the expected colours
-- [ ] Unit tests: several diameters through the centre give correct Regions and Scores
-- [ ] Unit tests: Moves using a used Point, the same Point twice, or neighbouring Points are rejected
-- [ ] Unit test: after the first Move, total coloured area always equals the Board's area
+- [x] Turns alternate Red, Blue, Red, …, and the turn indicator shows whose turn it is as page text
+- [x] A Line crossing earlier Lines Splits every Region it passes through, coloured according to Full split
+- [x] Regions the Line doesn't pass through keep their colour
+- [x] Unit tests: two crossing Lines give four Regions with the expected colours
+- [x] Unit tests: several diameters through the centre give correct Regions and Scores
+- [x] Unit tests: Moves using a used Point, the same Point twice, or neighbouring Points are rejected
+- [x] Unit test: after the first Move, total coloured area always equals the Board's area
 
 ## Comments
 
