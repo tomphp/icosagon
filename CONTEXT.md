@@ -24,6 +24,10 @@ _Avoid_: Polygon, cell, area
 
 ### Play
 
+**Settled**:
+A Region is Settled when no legal Line passes through it, so its colour can no longer change. At Game over every Region is Settled.
+_Avoid_: Safe, locked, untakeable
+
 **Player**:
 Red or Blue. Red always makes the first Move.
 
@@ -62,13 +66,19 @@ The program controlling a Player, choosing each Move by its Strategy. In a game 
 _Avoid_: AI, bot, CPU
 
 **Strategy**:
-How the Computer chooses its Move. Either **Random**, **Greedy** or **Neural**.
+How the Computer chooses its Move. Either **Random**, **Greedy**, **Hoarder**, **Clever Hoarder** or **Neural**.
 
 **Random**:
 The Strategy that picks uniformly among all legal Moves, counting `3→12` and `12→3` as different Moves.
 
 **Greedy**:
 The Strategy that picks the Move giving the Mover the highest Score once it is made, including any Award that ends the game. Ties are broken at random.
+
+**Hoarder**:
+The Strategy that picks the Move leaving the Mover the most Settled area, among the Moves that increase it. Ties go to the higher Score, then at random. When no Move increases the Mover's Settled area, it plays as Greedy.
+
+**Clever Hoarder**:
+The Strategy that picks the Move leaving the largest **Settled margin** (the Mover's Settled area minus the Opponent's), among the Moves that increase it. Ties go to the higher Score, then at random. When no Move increases the Settled margin, it plays as Greedy.
 
 **Neural**:
 The Strategy that picks the Move its Model rates best. Each Model is offered as its own Strategy (e.g. "Neural: gen-4").
@@ -86,7 +96,7 @@ Producing a Model by evolving a Population over many Generations, with every gam
 The set of neural networks that evolve together. A Model holds a whole Population; the best one is the one that plays.
 
 **Generation**:
-One round of Training: every network in the Population plays every other, and Greedy, to earn its Fitness; the fittest survive unchanged and mutated copies of them replace the rest.
+One round of Training: every network in the Population plays every other, and Greedy, Hoarder and Clever Hoarder, to earn its Fitness; the fittest survive unchanged and mutated copies of them replace the rest.
 _Avoid_: Using it for a saved Model file
 
 **Fitness**:
