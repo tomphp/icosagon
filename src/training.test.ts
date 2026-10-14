@@ -71,17 +71,20 @@ describe("Training", () => {
     expect(progress[1].ranked.map((r) => r.network)).toContainEqual(progress[0].ranked[0].network);
   });
 
-  it("plays the round-robin under both colours and both Endings plus 4 Greedy games per network", () => {
-    // 6 pairs × 4 games + 4 networks × 4 games against Greedy.
+  it("plays the round-robin under both colours and both Endings plus 4 games per network against each scripted opponent", () => {
+    // 6 pairs × 4 games + 4 networks × 4 games against each scripted opponent.
     for (const { games } of progress) expect(games).toBe(6 * 4 + 4 * 4);
   });
 
-  it("reports the Population's average margin against Greedy, which the round-robin games don't affect", () => {
-    for (const { ranked, greedyMargin } of progress) {
-      // The round-robin margins cancel out, and each network's 4 Greedy games are a 1/4 share of its 16.
+  it("reports the Population's average margin against each scripted opponent, which the round-robin games don't affect", () => {
+    for (const { ranked, margins } of progress) {
+      expect(Object.keys(margins)).toEqual(["greedy"]);
+      // The round-robin margins cancel out. Each network plays 4 games against each of the 3 others and each scripted opponent.
+      const scripted = Object.values(margins);
+      const gamesPerNetwork = 3 * 4 + 4 * scripted.length;
       const averageFitness = ranked.reduce((sum, r) => sum + r.fitness, 0) / ranked.length;
-      expect(greedyMargin).toBeCloseTo(averageFitness * 4);
-      expect(Math.abs(greedyMargin)).toBeLessThanOrEqual(1);
+      expect(scripted.reduce((sum, m) => sum + m, 0)).toBeCloseTo((averageFitness * gamesPerNetwork) / 4);
+      for (const margin of scripted) expect(Math.abs(margin)).toBeLessThanOrEqual(1);
     }
   });
 
@@ -156,7 +159,8 @@ describe("Stopping Training early", () => {
 
 describe("Training's final report", () => {
   it("plays the best network against Greedy and Random, its counts adding up to the games played", () => {
-    for (const results of [model.report!.greedy, model.report!.random]) {
+    expect(Object.keys(model.report!)).toEqual(["greedy", "random"]);
+    for (const results of Object.values(model.report!)) {
       expect(results.wins + results.draws + results.losses).toBe(4);
       expect(Math.abs(results.margin)).toBeLessThanOrEqual(1);
     }
@@ -164,10 +168,9 @@ describe("Training's final report", () => {
 
   it("is stored in the saved Model, its margins rounded", () => {
     const saved = loadModel(JSON.parse(saveModel(model))).report!;
-    for (const opponent of ["greedy", "random"] as const) {
-      const { margin, ...counts } = model.report![opponent];
-      expect(saved[opponent]).toMatchObject(counts);
-      expect(saved[opponent].margin).toBeCloseTo(margin, 4);
+    for (const [opponent, { margin, ...counts }] of Object.entries(model.report!)) {
+      expect(saved[opponent as keyof typeof saved]).toMatchObject(counts);
+      expect(saved[opponent as keyof typeof saved]!.margin).toBeCloseTo(margin, 4);
     }
   });
 });

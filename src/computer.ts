@@ -3,8 +3,11 @@ import { POINT_COUNT } from "./geometry.ts";
 import type { Model } from "./model.ts";
 import { rate } from "./network.ts";
 
+/** A Strategy that needs nothing but its name. */
+export type NamedStrategy = "random" | "greedy";
+
 /** How the Computer chooses its Move: by name, or Neural with the Model it plays. */
-export type Strategy = "random" | "greedy" | { kind: "neural"; model: Model };
+export type Strategy = NamedStrategy | { kind: "neural"; model: Model };
 
 /** A source of random numbers in [0, 1), like `Math.random`. */
 export type Random = () => number;

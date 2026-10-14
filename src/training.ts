@@ -1,4 +1,4 @@
-import type { Random, Strategy } from "./computer.ts";
+import type { NamedStrategy, Random, Strategy } from "./computer.ts";
 import type { Ending } from "./game.ts";
 import { gamePool, seeded, type GamePool, type GameSpec, type Played } from "./games.ts";
 import { MODEL_VERSION, type Model, type Results } from "./model.ts";
@@ -17,7 +17,7 @@ export interface TrainingOptions {
   seed: number;
   /** The Model to continue Training from, and its name, recorded as the new Model's parent. */
   from?: { model: Model; name: string };
-  /** How many games the best network plays against each of Greedy and Random at the end; 200 when omitted. */
+  /** How many games the best network plays against each opponent in the final report; 200 when omitted. */
   reportGames?: number;
   /** Called after each Generation's games. */
   onGeneration?: (progress: Progress) => void;
@@ -35,8 +35,8 @@ export interface Progress {
   generation: number;
   /** Every network in the Population with its Fitness, best first. */
   ranked: { network: Network; fitness: number }[];
-  /** The Population's average Score margin over its games against Greedy. */
-  greedyMargin: number;
+  /** The Population's average Score margin over its games against each scripted opponent. */
+  margins: Partial<Record<NamedStrategy, number>>;
   /** How many games the Generation played. */
   games: number;
 }
@@ -86,15 +86,22 @@ const ENDINGS: Ending[] = ["award", "skip"];
 /** The seed of a game's own random source, drawn in turn from `random`, so no game's play depends on another's. */
 const nextSeed = (random: Random) => random() * 2 ** 32;
 
+/** The scripted Strategies every network plays in each Generation, in the order they follow the Population. */
+const SCRIPTED: NamedStrategy[] = ["greedy"];
+
+/** The opponents in Training's final report: the scripted ones, then Random. */
+const REPORTED: NamedStrategy[] = [...SCRIPTED, "random"];
+
 /**
- * One Generation's games, between the Population's networks by index and Greedy, at index `size`:
- * every pair, and every network against Greedy, under both colours and both Endings.
+ * One Generation's games, between the Population's networks by index and the scripted opponents, from
+ * index `size`: every pair, and every network against each scripted opponent, under both colours and
+ * both Endings.
  */
 function schedule(size: number, random: Random): GameSpec[] {
   const pairs: [number, number][] = [];
   for (let a = 0; a < size; a++) {
     for (let b = a + 1; b < size; b++) pairs.push([a, b]);
-    pairs.push([a, size]);
+    for (let s = 0; s < SCRIPTED.length; s++) pairs.push([a, size + s]);
   }
   return pairs.flatMap(([a, b]) =>
     ENDINGS.flatMap((ending) => [
@@ -104,28 +111,31 @@ function schedule(size: number, random: Random): GameSpec[] {
   );
 }
 
-/** Each network's Fitness, its average Score margin over a Generation's games, and the Population's average margin against Greedy. */
+/**
+ * Each network's Fitness, its average Score margin over a Generation's games, and the Population's
+ * average margin against each scripted opponent.
+ */
 async function playGeneration(
   population: Network[],
   random: Random,
   pool: GamePool,
   signal?: AbortSignal,
-): Promise<{ fitness: number[]; greedyMargin: number; games: number }> {
-  // Greedy plays after the Population's networks and has no Fitness.
-  const greedy = population.length;
+): Promise<{ fitness: number[]; margins: Progress["margins"]; games: number }> {
+  // The scripted opponents play after the Population's networks and have no Fitness.
+  const size = population.length;
   const totals = population.map(() => ({ margin: 0, games: 0 }));
-  const vsGreedy = { margin: 0, games: 0 };
+  const vsScripted = SCRIPTED.map(() => ({ margin: 0, games: 0 }));
   const add = (contender: number, opponent: number, margin: number) => {
-    if (contender === greedy) return;
+    if (contender >= size) return;
     totals[contender].margin += margin;
     totals[contender].games++;
-    if (opponent === greedy) {
-      vsGreedy.margin += margin;
-      vsGreedy.games++;
+    if (opponent >= size) {
+      vsScripted[opponent - size].margin += margin;
+      vsScripted[opponent - size].games++;
     }
   };
-  const games = schedule(population.length, random);
-  const played = await pool.play([...population.map(neural), "greedy"], games, signal);
+  const games = schedule(size, random);
+  const played = await pool.play([...population.map(neural), ...SCRIPTED], games, signal);
   games.forEach(({ red, blue }, i) => {
     const { scores } = played[i];
     add(red, blue, scores.red - scores.blue);
@@ -133,7 +143,7 @@ async function playGeneration(
   });
   return {
     fitness: totals.map(({ margin, games }) => margin / games),
-    greedyMargin: vsGreedy.margin / vsGreedy.games,
+    margins: Object.fromEntries(SCRIPTED.map((strategy, s) => [strategy, vsScripted[s].margin / vsScripted[s].games])),
     games: games.length,
   };
 }
@@ -220,9 +230,9 @@ async function playGroups(pool: GamePool, strategies: Strategy[], groups: GameSp
 /**
  * Evolves a Population over the Generations and returns it as a Model, ready for its next
  * Generation: the survivors of the last Generation best first, then their mutated copies in the order
- * of the survivor each was copied from. It ends by playing the best network against Greedy and Random
- * and stores the report. The Population starts fresh, or as stored in the `from` Model, whose total
- * Generations this run's add to. The seed fully determines the result.
+ * of the survivor each was copied from. It ends by playing the best network against each scripted
+ * opponent and Random and stores the report. The Population starts fresh, or as stored in the `from`
+ * Model, whose total Generations this run's add to. The seed fully determines the result.
  *
  * When the signal is aborted, the Generation in progress is dropped and Training ends as if it had been asked
  * for only the Generations it completed, though the final report's games differ.
@@ -246,11 +256,11 @@ export async function train(options: TrainingOptions): Promise<Model> {
         if (options.signal?.aborted) break;
         throw error;
       }
-      const { fitness, greedyMargin, games } = played;
+      const { fitness, margins, games } = played;
       const ranked = population
         .map((network, i) => ({ network, fitness: fitness[i] }))
         .sort((a, b) => b.fitness - a.fitness);
-      options.onGeneration?.({ generation, ranked, greedyMargin, games });
+      options.onGeneration?.({ generation, ranked, margins, games });
 
       const survivors = ranked.slice(0, survivorCount).map(({ network }) => network);
       population = [
@@ -262,14 +272,14 @@ export async function train(options: TrainingOptions): Promise<Model> {
       completed = generation;
     }
 
-    // The best network, then Greedy and Random.
+    // The best network, then each reported opponent.
     const reportGames = options.reportGames ?? TRAINING_DEFAULTS.reportGames;
-    const [vsGreedy, vsRandom] = await playGroups(
+    const played = await playGroups(
       pool,
-      [neural(population[0]), "greedy", "random"],
-      [pairingGames(0, 1, reportGames, random), pairingGames(0, 2, reportGames, random)],
+      [neural(population[0]), ...REPORTED],
+      REPORTED.map((_, r) => pairingGames(0, 1 + r, reportGames, random)),
     );
-    const report = { greedy: pairResults(vsGreedy)[0], random: pairResults(vsRandom)[0] };
+    const report = Object.fromEntries(REPORTED.map((opponent, r) => [opponent, pairResults(played[r])[0]]));
     const generations = (from?.model.generations ?? 0) + completed;
     return { ...modelOf(population, options.seed, generations), parent: from?.name ?? null, report };
   } finally {

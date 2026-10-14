@@ -85,9 +85,12 @@ const model = await train({
     games += progress.games;
     const fitness = progress.ranked.map((r) => r.fitness);
     const average = fitness.reduce((sum, f) => sum + f, 0) / fitness.length;
-    console.log(
-      `Generation ${progress.generation}/${generations}: best ${fitness[0].toFixed(4)}, average ${average.toFixed(4)}, vs greedy ${signed(progress.greedyMargin)}`,
-    );
+    const stats = [
+      `best ${fitness[0].toFixed(4)}`,
+      `average ${average.toFixed(4)}`,
+      ...Object.entries(progress.margins).map(([opponent, margin]) => `vs ${opponent} ${signed(margin)}`),
+    ];
+    console.log(`Generation ${progress.generation}/${generations}: ${stats.join(", ")}`);
   },
 });
 if (stop.signal.aborted) console.log(`Stopped after ${model.generations - (from?.model.generations ?? 0)} of ${generations} Generations`);

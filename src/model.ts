@@ -1,4 +1,4 @@
-import type { Strategy } from "./computer.ts";
+import type { NamedStrategy, Strategy } from "./computer.ts";
 import { INPUT_SIZE, type Network } from "./network.ts";
 
 /** The Model format version. It changes whenever the network's inputs or the file layout do. */
@@ -23,8 +23,11 @@ export interface Model {
   generations: number;
   /** The name of the Model this was trained from, if any. */
   parent: string | null;
-  /** How the best network did against Greedy and Random at the end of Training. */
-  report: { greedy: Results; random: Results } | null;
+  /**
+   * How the best network did against each opponent at the end of Training. Models trained before an
+   * opponent was added have no entry for it.
+   */
+  report: Partial<Record<NamedStrategy, Results>> | null;
 }
 
 /** Whether the value is an array of exactly `length` numbers. */

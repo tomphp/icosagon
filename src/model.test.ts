@@ -30,6 +30,13 @@ describe("loading a Model", () => {
     expect(model.parent).toBe("gen-1");
   });
 
+  it("accepts a report missing some opponents, as written before they were added", () => {
+    const greedy = { wins: 3, draws: 0, losses: 1, margin: 0.2 };
+    const random = { wins: 4, draws: 0, losses: 0, margin: 0.6 };
+
+    expect(loadModel(document({ report: { greedy, random } })).report).toEqual({ greedy, random });
+  });
+
   it("rejects a wrong version", () => {
     expect(() => loadModel(document({ version: MODEL_VERSION + 1 }))).toThrow(/version/);
     expect(() => loadModel(document({ version: undefined }))).toThrow(/version/);
