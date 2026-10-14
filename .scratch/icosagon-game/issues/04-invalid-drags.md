@@ -8,7 +8,7 @@ See `.scratch/icosagon-game/spec.md` and `CONTEXT.md`.
 
 **Blocked by:** 02 (Turns and Splitting several Regions).
 
-- [ ] Pressing on a used Point or on empty space doesn't start a drag
-- [ ] Releasing on empty space, the start Point, a neighbouring Point or a used Point cancels the drag with no change to the Board
-- [ ] After a cancelled drag it is still the same Player's turn
-- [ ] Browser test: a game that mixes these invalid drags with valid Moves confirms that the turn and Scores only change on valid Moves
+- [x] Pressing on a used Point or on empty space doesn't start a drag
+- [x] Releasing on empty space, the start Point, a neighbouring Point or a used Point cancels the drag with no change to the Board
+- [x] After a cancelled drag it is still the same Player's turn
+- [x] Browser test: a game that mixes these invalid drags with valid Moves confirms that the turn and Scores only change on valid Moves

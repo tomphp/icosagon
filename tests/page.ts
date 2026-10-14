@@ -4,27 +4,44 @@ import { boardLayout, pointOnScreen as pointOnCanvas } from "../src/layout";
 export async function launch(): Promise<Browser> {
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
   if (!executablePath) throw new Error("PUPPETEER_EXECUTABLE_PATH is not set; run inside `nix develop`");
-  return puppeteer.launch({ executablePath, args: ["--no-sandbox"] });
+  // Tall enough that the whole Board, including the bottom Points, is inside the viewport.
+  return puppeteer.launch({ executablePath, args: ["--no-sandbox"], defaultViewport: { width: 800, height: 800 } });
 }
 
-/** Where Point i is on screen, derived from the canvas's bounding box. */
-async function pointOnScreen(page: Page, i: number) {
+/** Somewhere a pointer can be: a Point, the Board's centre, or the canvas corner outside the Board. */
+export type Spot = number | "centre" | "corner";
+
+/** Where a Spot is on screen, derived from the canvas's bounding box. */
+async function onScreen(page: Page, spot: Spot) {
   const box = await page.$eval("canvas", (c) => {
     const r = c.getBoundingClientRect();
     return { x: r.x, y: r.y, width: r.width, height: r.height };
   });
-  const p = pointOnCanvas(boardLayout(box.width, box.height), i);
+  const layout = boardLayout(box.width, box.height);
+  const p = spot === "centre" ? layout.centre : spot === "corner" ? { x: 1, y: 1 } : pointOnCanvas(layout, spot);
   return { x: box.x + p.x, y: box.y + p.y };
 }
 
-/** Plays a Move with a real pointer drag from one Point to another. */
-export async function drag(page: Page, start: number, end: number) {
-  const from = await pointOnScreen(page, start);
-  const to = await pointOnScreen(page, end);
-  await page.mouse.move(from.x, from.y);
+/** Presses on the first Spot and moves through the rest, without releasing. */
+export async function hold(page: Page, from: Spot, ...path: Spot[]) {
+  const start = await onScreen(page, from);
+  await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  await page.mouse.move(to.x, to.y, { steps: 10 });
+  for (const spot of path) {
+    const p = await onScreen(page, spot);
+    await page.mouse.move(p.x, p.y, { steps: 10 });
+  }
+}
+
+/** A real pointer drag: press on the first Spot, move through the rest, release on the last. */
+export async function drag(page: Page, from: Spot, ...path: [...Spot[], Spot]) {
+  await hold(page, from, ...path);
   await page.mouse.up();
+}
+
+/** What the canvas currently shows, for comparing before and after. */
+export function canvasImage(page: Page) {
+  return page.$eval("canvas", (c) => c.toDataURL());
 }
 
 export function text(page: Page, selector: string) {

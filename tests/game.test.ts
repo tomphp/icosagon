@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser } from "puppeteer-core";
-import { drag, isVisible, launch, text } from "./page";
+import { canvasImage, drag, hold, isVisible, launch, text } from "./page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -75,5 +75,55 @@ describe("the end of a game on the page", () => {
 
     await drag(page, 0, 10);
     expect(await text(page, "#score-red")).toBe("Red 50.0%");
+  });
+});
+
+describe("invalid drags on the page", () => {
+  it("leave the Board, the Scores and the turn unchanged, so the same Player tries again", async () => {
+    const page = await browser.newPage();
+    await page.goto(inject("baseUrl"));
+    const expectState = async (turn: string, red: string, blue: string) => {
+      expect(await text(page, "#turn")).toBe(turn);
+      expect(await text(page, "#score-red")).toBe(red);
+      expect(await text(page, "#score-blue")).toBe(blue);
+    };
+
+    await drag(page, 0, "corner"); // released on empty space outside the Board
+    await drag(page, 0, "centre"); // released on empty space inside the Board
+    await drag(page, 0, 1); // released on a neighbouring Point
+    await drag(page, 0, 19); // released on a neighbouring Point across Point 0
+    await drag(page, 0, "centre", 0); // released back on the start Point
+    await drag(page, "centre", 10); // pressed on empty space
+    await expectState("Red to move", "Red 0.0%", "Blue 0.0%");
+
+    await drag(page, 0, 10);
+    await expectState("Blue to move", "Red 50.0%", "Blue 50.0%");
+
+    const board = await canvasImage(page);
+
+    // Pressing on a used Point or empty space starts no drag, so no Line follows the pointer.
+    for (const from of [10, "corner", "centre"] as const) {
+      await hold(page, from, 15);
+      expect(await canvasImage(page)).toBe(board);
+      await page.mouse.up();
+    }
+
+    // Holding on a legal start Point does draw a Line, which a cancelled release removes.
+    await hold(page, 5, 0); // over a used Point
+    expect(await canvasImage(page)).not.toBe(board);
+    await page.mouse.up();
+    expect(await canvasImage(page)).toBe(board);
+    await expectState("Blue to move", "Red 50.0%", "Blue 50.0%");
+
+    // Blue's crossing diameter: Red keeps the top half, Blue gets the bottom.
+    await drag(page, 5, 15);
+    await expectState("Red to move", "Red 50.0%", "Blue 50.0%");
+
+    await drag(page, 1, 5); // released on a used Point
+    await drag(page, 1, 2); // released on a neighbouring Point
+    await expectState("Red to move", "Red 50.0%", "Blue 50.0%");
+
+    await drag(page, 1, 4);
+    await expectState("Blue to move", "Red 26.9%", "Blue 73.1%");
   });
 });
