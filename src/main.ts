@@ -13,6 +13,7 @@ const turn = document.querySelector("#turn")!;
 const result = document.querySelector<HTMLElement>("#result")!;
 const newGame = document.querySelector("#new-game")!;
 const you = document.querySelector<HTMLElement>("#you")!;
+const computerPlayed = document.querySelector<HTMLElement>("#computer-played")!;
 const endingSelect = document.querySelector<HTMLSelectElement>("#ending")!;
 const opponentSelect = document.querySelector<HTMLSelectElement>("#opponent")!;
 const selectors = [opponentSelect, endingSelect];
@@ -59,6 +60,12 @@ function gameOverText({ stuck, ending }: Game) {
   return ending === "award" ? `${reason} and takes the Region by Points ${p} and ${q}` : reason;
 }
 
+/** The result line's opening words: who won, from the Human's side against the Computer. */
+function resultText(outcome: Exclude<Outcome, "in-progress">, human: Player | null) {
+  if (!human || outcome === "draw") return RESULT[outcome];
+  return outcome === `${human}-wins` ? "You win" : "Computer wins";
+}
+
 function update() {
   render(ctx, layout(), game, drag);
   const red = `Red ${percent(game.scores.red)}`;
@@ -71,12 +78,16 @@ function update() {
   const human: Player | null = computer && (computer === "red" ? "blue" : "red");
   you.hidden = human === null;
   if (human) you.textContent = `You are ${NAME[human]}`;
+  // The Computer's Move is shown until the Human moves again, so only while it made the last Move.
+  const last = game.moves.at(-1);
+  computerPlayed.hidden = !computer || game.mover === computer || !last;
+  if (last) computerPlayed.textContent = `Computer played ${last.start}→${last.end}`;
   if (game.outcome === "in-progress") {
     turn.textContent = human ? `Your move (${NAME[game.mover]})` : `${NAME[game.mover]} to move`;
     result.hidden = true;
   } else {
     turn.textContent = gameOverText(game);
-    result.textContent = `${RESULT[game.outcome]}: ${red}, ${blue}`;
+    result.textContent = `${resultText(game.outcome, human)}: ${red}, ${blue}`;
     result.hidden = false;
   }
 }

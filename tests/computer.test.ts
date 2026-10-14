@@ -40,6 +40,8 @@ function script(ending: Ending, computer: Player, moves: [number, number][]) {
 
 const percent = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
 
+const scoreText = (game: Game) => `Red ${percent(game.scores.red)}, Blue ${percent(game.scores.blue)}`;
+
 async function expectScores(page: Page, game: Game) {
   expect(await text(page, "#score-red")).toBe(`Red ${percent(game.scores.red)}`);
   expect(await text(page, "#score-blue")).toBe(`Blue ${percent(game.scores.blue)}`);
@@ -61,6 +63,7 @@ describe("Play against on the page", () => {
 
     expect(await selectedText(page, "#opponent")).toBe("Human");
     expect(await isVisible(page, "#you")).toBe(false);
+    expect(await isVisible(page, "#computer-played")).toBe(false);
     expect(await text(page, "#turn")).toBe("Red to move");
   });
 
@@ -75,9 +78,11 @@ describe("Play against on the page", () => {
     expect(await text(page, "#turn")).toBe("Your move (Red)");
     await expectScores(page, createGame("award"));
     expect(await lockedSelectors(page)).toEqual([false, false]);
+    expect(await isVisible(page, "#computer-played")).toBe(false);
 
     await drag(page, 0, 10);
     expect(await text(page, "#turn")).toBe("Your move (Red)");
+    expect(await text(page, "#computer-played")).toBe("Computer played 5→15");
     await expectScores(page, afterReply);
     expect(await lockedSelectors(page)).toEqual([true, true]);
   });
@@ -94,9 +99,11 @@ describe("Play against on the page", () => {
     expect(await text(page, "#turn")).toBe("Your move (Blue)");
     await expectScores(page, opening);
     expect(await lockedSelectors(page)).toEqual([false, false]);
+    expect(await text(page, "#computer-played")).toBe("Computer played 0→10");
 
     await drag(page, 5, 15);
     expect(await text(page, "#turn")).toBe("Your move (Blue)");
+    expect(await text(page, "#computer-played")).toBe("Computer played 2→12");
     await expectScores(page, afterReply);
     expect(await lockedSelectors(page)).toEqual([true, true]);
 
@@ -106,6 +113,7 @@ describe("Play against on the page", () => {
     expect(await selectedText(page, "#opponent")).toBe("Computer");
     expect(await text(page, "#you")).toBe("You are Red");
     expect(await text(page, "#turn")).toBe("Your move (Red)");
+    expect(await isVisible(page, "#computer-played")).toBe(false);
     await expectScores(page, createGame("award"));
   });
 
@@ -115,6 +123,7 @@ describe("Play against on the page", () => {
     await page.select("#opponent", "computer");
     await page.select("#opponent", "human");
     expect(await isVisible(page, "#you")).toBe(false);
+    expect(await isVisible(page, "#computer-played")).toBe(false);
     expect(await text(page, "#turn")).toBe("Red to move");
 
     await drag(page, 0, 10);
@@ -136,7 +145,21 @@ describe("a stuck game against the Computer on the page", () => {
     for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 0)) await drag(page, start, end);
 
     expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
-    expect(await isVisible(page, "#result")).toBe(true);
+    // The Human made the last Move, so the Computer's earlier Move is no longer shown.
+    expect(await isVisible(page, "#computer-played")).toBe(false);
+    expect(await text(page, "#result")).toBe(`Computer wins: ${scoreText(game)}`);
+    await expectScores(page, game);
+  });
+
+  it("ends when the Human is stuck, under Award, and the Human wins", async () => {
+    const { game, values } = script("award", "red", stuckGame);
+    const page = await openPage([HUMAN_BLUE, ...values]);
+    await page.select("#opponent", "computer");
+
+    for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) await drag(page, start, end);
+
+    expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
+    expect(await text(page, "#result")).toBe(`You win: ${scoreText(game)}`);
     await expectScores(page, game);
   });
 
@@ -151,7 +174,8 @@ describe("a stuck game against the Computer on the page", () => {
     for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) await drag(page, start, end);
 
     expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move");
-    expect(await isVisible(page, "#result")).toBe(true);
+    expect(await text(page, "#computer-played")).toBe("Computer played 6→16");
+    expect(await text(page, "#result")).toBe(`Computer wins: ${scoreText(game)}`);
     await expectScores(page, game);
 
     // The game is over, so no Line can be drawn between the last two Points.
