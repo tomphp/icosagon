@@ -1,4 +1,4 @@
-import { chooseMove } from "./computer";
+import { chooseMove, type Strategy } from "./computer";
 import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Ending, type Game, type Outcome, type Player } from "./game";
 import { attachInput } from "./input";
 import { boardLayout } from "./layout";
@@ -16,9 +16,12 @@ const you = document.querySelector<HTMLElement>("#you")!;
 const computerPlayed = document.querySelector<HTMLElement>("#computer-played")!;
 const endingSelect = document.querySelector<HTMLSelectElement>("#ending")!;
 const opponentSelect = document.querySelector<HTMLSelectElement>("#opponent")!;
-const selectors = [opponentSelect, endingSelect];
+const strategySelect = document.querySelector<HTMLSelectElement>("#strategy")!;
+const selectors = [opponentSelect, strategySelect, endingSelect];
 /** The Ending chosen in the selector; its option values are the Ending names. */
 const selectedEnding = () => endingSelect.value as Ending;
+/** The Strategy chosen in the selector; its option values are the Strategy names. */
+const selectedStrategy = () => strategySelect.value as Strategy;
 
 /** The canvas's side in CSS pixels, the units pointer events and the layout use. */
 let size = 0;
@@ -32,7 +35,7 @@ let drag: DragView | null = null;
 /** Plays the Computer's Move if it is the Mover. */
 function playComputer() {
   if (game.outcome === "in-progress" && game.mover === computer) {
-    game = applyMove(game, chooseMove(game, "random", Math.random));
+    game = applyMove(game, chooseMove(game, selectedStrategy(), Math.random));
   }
 }
 
@@ -75,6 +78,8 @@ function update() {
   // The settings are fixed once the Human has drawn a Line; the Computer's opening Move as Red doesn't count.
   const humanMoved = game.moves.length > (computer === "red" ? 1 : 0);
   for (const select of selectors) select.disabled = humanMoved;
+  // Strategy only applies against the Computer.
+  strategySelect.disabled = humanMoved || !computer;
   const human: Player | null = computer && (computer === "red" ? "blue" : "red");
   you.hidden = human === null;
   if (human) you.textContent = `You are ${NAME[human]}`;
