@@ -38,6 +38,10 @@ Run each fix as an experiment against a fixed protocol, one ticket at a time. Ke
 | 04 | `--mutation 0.01` | −0.381 (G −0.22 / H −0.46 / CH −0.45) | −0.354 (G −0.01 / H −0.49 / CH −0.56) | −0.360 (G −0.23 / H −0.46 / CH −0.39) | −0.365 (spread 0.027) | no |
 | 04 | `--mutation 0.005` | −0.316 (G +0.19 / H −0.53 / CH −0.61) | −0.416 (G −0.25 / H −0.49 / CH −0.51) | −0.525 (G −0.17 / H −0.71 / CH −0.69) | −0.419 (spread 0.210) | no |
 | 08 | Settled input at each sample spot (145 inputs, Model version 2) | +0.007 (G +0.24 / H −0.07 / CH −0.15) | −0.096 (G +0.16 / H −0.23 / CH −0.22) | −0.137 (G +0.07 / H −0.25 / CH −0.23) | **−0.075** (spread 0.144) | yes |
+| 05 | `--mutation-rate 0.1` (σ 0.05) | −0.254 (G +0.15 / H −0.43 / CH −0.48) | −0.303 (G −0.24 / H −0.35 / CH −0.33) | −0.147 (G +0.05 / H −0.22 / CH −0.27) | −0.235 (spread 0.156) | no |
+| 05 | `--mutation-rate 0.1 --mutation 0.1` | +0.035 (G +0.21 / H −0.07 / CH −0.04) | −0.217 (G −0.06 / H −0.29 / CH −0.31) | +0.007 (G +0.23 / H −0.09 / CH −0.12) | −0.059 (spread 0.252) | no |
+| 05 | `--mutation-rate 0.02` (σ 0.05) | −0.124 (G +0.20 / H −0.30 / CH −0.27) | −0.398 (G −0.17 / H −0.52 / CH −0.50) | −0.030 (G +0.20 / H −0.14 / CH −0.16) | −0.184 (spread 0.368) | no |
+| 05 | `--mutation-rate 0.02 --mutation 0.1` | −0.201 (G −0.04 / H −0.28 / CH −0.28) | −0.108 (G +0.28 / H −0.30 / CH −0.31) | −0.037 (G +0.28 / H −0.21 / CH −0.18) | −0.115 (spread 0.164) | no |
 
 ## Decisions so far
 
@@ -48,6 +52,7 @@ Run each fix as an experiment against a fixed protocol, one ticket at a time. Ke
 - 03: Fitting by backprop loses (−0.336 against −0.295; not kept). Its error flattens at about 0.13 by epoch 10 out of 30, on about 190,000 positions, so more training on the same signal doesn't help. It roughly matches Greedy but loses heavily to both Hoarders, as evolution does. **Decision: the bottleneck is the inputs, not the training method.** Tickets 04–08 go ahead as planned; ticket 08 (Settled input) is the most likely to matter. Best so far stays `results/01-baseline.json`.
 - 04: No smaller mutation wins, so the default stays 0.05. σ 0.02 does best (−0.274), but its gain of 0.022 is inside the baseline's spread of 0.075. 0.01 (−0.365) and 0.005 (−0.419) are worse, so smaller steps hurt. At every σ the `vs` margins stop improving after about 10 Generations, as at the baseline, so step size is not what limits Training. Best so far stays `results/01-baseline.json`.
 - 08: The Settled input wins clearly (−0.075 against −0.295, a gain of 0.220 against the baseline's spread of 0.075; every seed is better than its baseline seed). The biggest change is against the Hoarders: from about −0.50 to about −0.20, with seed 1 close to even against Hoarder. The `vs` margins now keep improving until about Generation 30 rather than 10. Old Models (version 1) no longer load. Computing Settled Regions made Neural games about 10× slower, until `isLegalMove` stopped rebuilding the used Points on each call; Neural games are now about 2× as slow as before, and Hoarder games about 5× faster, so a 60-Generation run takes about 13 minutes rather than 9.5. **Best so far: `results/08-settled.json`, at the default Training settings.**
+- 05: Mutating only some weights loses, so the option was removed. Rate 0.1 with σ 0.1 does best (−0.059), but its gain of 0.017 is well inside 08's spread of 0.144, and its seed 2 is worse than 08's by 0.121. At σ 0.05 both rates are worse (0.1: −0.235; 0.02: −0.184), and rate 0.02 with σ 0.1 gets −0.115. The `vs` margins follow the same curve as 08. Like ticket 04, this suggests the mutation step is not what limits Training. Best so far stays `results/08-settled.json`.
 
 ## Out of scope / later
 

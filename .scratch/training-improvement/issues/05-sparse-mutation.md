@@ -1,6 +1,6 @@
 # 05: Mutate only some weights
 
-Status: ready-for-agent
+Status: done
 
 **Hypothesis:** Noise on every one of the 2,753 weights scrambles what a network has learned. Changing only a share of them, with a larger σ, explores without destroying it.
 
@@ -8,6 +8,6 @@ Status: ready-for-agent
 
 **Blocked by:** 04
 
-- [ ] Option and flag added; with the default of 1, the same seed still gives the same Model
-- [ ] A test showing that a rate of 0 leaves a child equal to its parent
-- [ ] Variants benched and recorded; option kept and default set, or removed
+- [x] Option and flag added; with the default of 1, the same seed still gives the same Model (checked byte for byte against the old code)
+- [x] A test showing that a rate of 0 leaves a child equal to its parent
+- [x] Variants benched and recorded; option kept and default set, or removed (removed: no variant won)

@@ -1,0 +1,47 @@
+{
+  "args": [
+    "--out",
+    ".scratch/training-improvement/results/05-rate0.02-sigma0.05",
+    "--best",
+    ".scratch/training-improvement/results/08-settled.json",
+    "--mutation-rate",
+    "0.02",
+    "--mutation",
+    "0.05"
+  ],
+  "seeds": [
+    {
+      "seed": 1,
+      "margins": {
+        "greedy": 0.1968,
+        "hoarder": -0.3003,
+        "clever-hoarder": -0.2674
+      },
+      "games": 84320,
+      "mean": -0.12363333333333333
+    },
+    {
+      "seed": 2,
+      "margins": {
+        "greedy": -0.1688,
+        "hoarder": -0.5216,
+        "clever-hoarder": -0.5047
+      },
+      "games": 84320,
+      "mean": -0.3983666666666667
+    },
+    {
+      "seed": 3,
+      "margins": {
+        "greedy": 0.201,
+        "hoarder": -0.1351,
+        "clever-hoarder": -0.1557
+      },
+      "games": 84320,
+      "mean": -0.02993333333333333
+    }
+  ],
+  "mean": -0.1839777777777778,
+  "spread": 0.3684333333333334,
+  "games": 252960
+}
