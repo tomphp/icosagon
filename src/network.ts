@@ -1,4 +1,5 @@
 import { POINT_COUNT, side, type Vec } from "./geometry.ts";
+import { settledRegions } from "./computer.ts";
 import { opponentOf, usedPoints, type Game, type Player } from "./game.ts";
 
 /**
@@ -29,7 +30,8 @@ const SAMPLE_SPOTS: Vec[] = [
 
 /**
  * Where each input sits: the colour at each sample spot, then whether each Point is used, then both
- * Scores and the Ending. Changing the layout needs a new Model format version.
+ * Scores and the Ending, then whether each sample spot is Settled. Changing the layout needs a new
+ * Model format version.
  */
 export const INPUT = {
   spots: 0,
@@ -37,9 +39,10 @@ export const INPUT = {
   ownScore: SAMPLE_SPOTS.length + POINT_COUNT,
   opponentScore: SAMPLE_SPOTS.length + POINT_COUNT + 1,
   ending: SAMPLE_SPOTS.length + POINT_COUNT + 2,
+  settled: SAMPLE_SPOTS.length + POINT_COUNT + 3,
 } as const;
 
-export const INPUT_SIZE = INPUT.ending + 1;
+export const INPUT_SIZE = INPUT.settled + SAMPLE_SPOTS.length;
 
 /** Whether p is inside or on the edge of a convex polygon, whichever way round it winds. */
 function contains(polygon: Vec[], p: Vec): boolean {
@@ -56,9 +59,11 @@ function contains(polygon: Vec[], p: Vec): boolean {
 /** The network's inputs for the position, from the point of view of the Player. */
 export function inputsFor(game: Game, player: Player): number[] {
   const inputs = Array<number>(INPUT_SIZE).fill(0);
+  const settled = new Set(settledRegions(game));
   SAMPLE_SPOTS.forEach((spot, i) => {
-    const colour = game.regions.find((r) => contains(r.polygon, spot))?.colour;
-    if (colour) inputs[INPUT.spots + i] = colour === player ? 1 : -1;
+    const region = game.regions.find((r) => contains(r.polygon, spot));
+    if (region?.colour) inputs[INPUT.spots + i] = region.colour === player ? 1 : -1;
+    if (region && settled.has(region)) inputs[INPUT.settled + i] = 1;
   });
   for (const point of usedPoints(game)) inputs[INPUT.points + point] = 1;
   inputs[INPUT.ownScore] = game.scores[player];

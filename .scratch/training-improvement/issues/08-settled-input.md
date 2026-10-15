@@ -1,6 +1,6 @@
 # 08: Give the network a Settled signal
 
-Status: ready-for-agent
+Status: done
 
 **Hypothesis:** The network can't tell area that can still be taken from area that's safe, which is exactly what Hoarder and Clever Hoarder exploit. If ticket 03 shows the inputs are the limit, this is the priority.
 
@@ -8,6 +8,6 @@ Status: ready-for-agent
 
 **Blocked by:** 03
 
-- [ ] Input added; `MODEL_VERSION` bumped; fixture regenerated; tests pass
-- [ ] Benched against the best-so-far result for the same training method, and recorded
-- [ ] If it loses, revert the change completely
+- [x] Input added; `MODEL_VERSION` bumped; fixture regenerated; tests pass
+- [x] Benched against the best-so-far result for the same training method, and recorded
+- [x] If it loses, revert the change completely (it won, so it is kept)

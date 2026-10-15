@@ -1,4 +1,4 @@
-import { applyMove, isLegalMove, opponentOf, type Game, type Move, type Player } from "./game.ts";
+import { applyMove, isLegalMove, opponentOf, type Game, type Move, type Player, type Region } from "./game.ts";
 import { POINT_COUNT, boardPolygon, pointPosition, polygonArea, splitPolygon } from "./geometry.ts";
 import type { Model } from "./model.ts";
 import { rate } from "./network.ts";
@@ -50,18 +50,24 @@ function highest<T>(items: T[], value: (item: T) => number, tolerance: number): 
 const greedyMoves = (game: Game) => bestMoves(game, (after) => after.scores[game.mover], TIE_TOLERANCE);
 
 /**
- * Each Player's Settled area, as a fraction of the Board's: their Regions that no legal Move would
- * split. In a finished game no Move is legal, so it is each Player's Score.
+ * The Settled Regions: those no legal Move would split. The only uncoloured Region, a fresh game's whole
+ * Board, can always be split, so it is never Settled.
  */
-function settledAreas(game: Game): Record<Player, number> {
+export function settledRegions(game: Game): Region[] {
   // Both directions of a Line split a Region alike.
   const lines = legalMoves(game)
     .filter(({ start, end }) => start < end)
     .map(({ start, end }) => [pointPosition(start), pointPosition(end)] as const);
+  return game.regions.filter(({ polygon, colour }) => colour !== null && !lines.some(([a, b]) => splitPolygon(polygon, a, b)));
+}
+
+/**
+ * Each Player's Settled area, as a fraction of the Board's. In a finished game no Move is legal, so it
+ * is each Player's Score.
+ */
+function settledAreas(game: Game): Record<Player, number> {
   const areas = { red: 0, blue: 0 };
-  for (const { polygon, colour } of game.regions) {
-    if (colour !== null && !lines.some(([a, b]) => splitPolygon(polygon, a, b))) areas[colour] += polygonArea(polygon);
-  }
+  for (const { polygon, colour } of settledRegions(game)) areas[colour!] += polygonArea(polygon);
   return { red: areas.red / BOARD_AREA, blue: areas.blue / BOARD_AREA };
 }
 

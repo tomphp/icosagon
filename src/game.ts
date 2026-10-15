@@ -167,6 +167,8 @@ function unusedPoints(game: Game): number[] {
 
 export function isLegalMove(game: Game, move: Move): boolean {
   if (game.outcome !== "in-progress") return false;
-  const used = usedPoints(game);
-  return move.start !== move.end && !isAdjacent(move.start, move.end) && !used.has(move.start) && !used.has(move.end);
+  // Scans the few Moves rather than building usedPoints: Hoarder, Clever Hoarder and Neural call this
+  // hundreds of times per position.
+  const used = (point: number) => game.moves.some((m) => m.start === point || m.end === point);
+  return move.start !== move.end && !isAdjacent(move.start, move.end) && !used(move.start) && !used(move.end);
 }

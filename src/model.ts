@@ -2,7 +2,7 @@ import type { NamedStrategy, Strategy } from "./computer.ts";
 import { INPUT_SIZE, type Network } from "./network.ts";
 
 /** The Model format version. It changes whenever the network's inputs or the file layout do. */
-export const MODEL_VERSION = 1;
+export const MODEL_VERSION = 2;
 
 /** How one participant did against another: game counts and its average Score margin. */
 export interface Results {
