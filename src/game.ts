@@ -172,3 +172,27 @@ export function isLegalMove(game: Game, move: Move): boolean {
   const used = (point: number) => game.moves.some((m) => m.start === point || m.end === point);
   return move.start !== move.end && !isAdjacent(move.start, move.end) && !used(move.start) && !used(move.end);
 }
+
+/** Every legal Move, counting each direction of a Line separately. */
+export function legalMoves(game: Game): Move[] {
+  const moves: Move[] = [];
+  for (let start = 0; start < POINT_COUNT; start++) {
+    for (let end = 0; end < POINT_COUNT; end++) {
+      if (isLegalMove(game, { start, end })) moves.push({ start, end });
+    }
+  }
+  return moves;
+}
+
+/**
+ * The Settled Regions: those no legal Move would split. The only uncoloured Region, a fresh game's whole
+ * Board, can always be split, so it is never Settled.
+ */
+export function settledRegions(game: Game): Region[] {
+  // Both directions of a Line split a Region alike.
+  const lines = legalMoves(game)
+    .filter(({ start, end }) => start < end)
+    .map(({ start, end }) => [pointPosition(start), pointPosition(end)] as const);
+  return game.regions.filter(({ polygon, colour }) => colour !== null && !lines.some(([a, b]) => splitPolygon(polygon, a, b)));
+}
+

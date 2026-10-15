@@ -1,6 +1,5 @@
 import { POINT_COUNT, side, type Vec } from "./geometry.ts";
-import { settledRegions } from "./computer.ts";
-import { opponentOf, usedPoints, type Game, type Player } from "./game.ts";
+import { opponentOf, settledRegions, usedPoints, type Game, type Player } from "./game.ts";
 
 /**
  * A fully connected network with one tanh hidden layer that rates a position. Weights are plain

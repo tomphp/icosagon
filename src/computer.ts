@@ -1,5 +1,5 @@
-import { applyMove, isLegalMove, opponentOf, type Game, type Move, type Player, type Region } from "./game.ts";
-import { POINT_COUNT, boardPolygon, pointPosition, polygonArea, splitPolygon } from "./geometry.ts";
+import { applyMove, legalMoves, opponentOf, settledRegions, type Game, type Move, type Player } from "./game.ts";
+import { boardPolygon, polygonArea } from "./geometry.ts";
 import type { Model } from "./model.ts";
 import { rate } from "./network.ts";
 
@@ -17,17 +17,6 @@ const TIE_TOLERANCE = 1e-9;
 
 /** The Board's area, to give Settled area as a fraction of it, like a Score. */
 const BOARD_AREA = polygonArea(boardPolygon());
-
-/** Every legal Move, counting each direction of a Line separately. */
-function legalMoves(game: Game): Move[] {
-  const moves: Move[] = [];
-  for (let start = 0; start < POINT_COUNT; start++) {
-    for (let end = 0; end < POINT_COUNT; end++) {
-      if (isLegalMove(game, { start, end })) moves.push({ start, end });
-    }
-  }
-  return moves;
-}
 
 const pick = <T>(items: T[], random: Random) => items[Math.floor(random() * items.length)];
 
@@ -48,18 +37,6 @@ function highest<T>(items: T[], value: (item: T) => number, tolerance: number): 
 
 /** The legal Moves leaving the Mover the highest Score, within the tie tolerance. */
 const greedyMoves = (game: Game) => bestMoves(game, (after) => after.scores[game.mover], TIE_TOLERANCE);
-
-/**
- * The Settled Regions: those no legal Move would split. The only uncoloured Region, a fresh game's whole
- * Board, can always be split, so it is never Settled.
- */
-export function settledRegions(game: Game): Region[] {
-  // Both directions of a Line split a Region alike.
-  const lines = legalMoves(game)
-    .filter(({ start, end }) => start < end)
-    .map(({ start, end }) => [pointPosition(start), pointPosition(end)] as const);
-  return game.regions.filter(({ polygon, colour }) => colour !== null && !lines.some(([a, b]) => splitPolygon(polygon, a, b)));
-}
 
 /**
  * Each Player's Settled area, as a fraction of the Board's. In a finished game no Move is legal, so it
