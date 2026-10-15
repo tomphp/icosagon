@@ -1,0 +1,46 @@
+{
+  "args": [
+    "--out",
+    ".scratch/training-improvement/results/03-fit",
+    "--best",
+    ".scratch/training-improvement/results/01-baseline.json",
+    "/home/tom/.claude/jobs/b749b36d/tmp/fit-s1.json",
+    "/home/tom/.claude/jobs/b749b36d/tmp/fit-s2.json",
+    "/home/tom/.claude/jobs/b749b36d/tmp/fit-s3.json"
+  ],
+  "seeds": [
+    {
+      "seed": 1,
+      "margins": {
+        "greedy": 0.021566567846050873,
+        "hoarder": -0.49777667545017495,
+        "clever-hoarder": -0.4538484019444292
+      },
+      "games": 800,
+      "mean": -0.3100195031828511
+    },
+    {
+      "seed": 2,
+      "margins": {
+        "greedy": -0.032571658656763466,
+        "hoarder": -0.5291623699853484,
+        "clever-hoarder": -0.5104368838446907
+      },
+      "games": 800,
+      "mean": -0.35739030416226747
+    },
+    {
+      "seed": 3,
+      "margins": {
+        "greedy": -0.1567037990174884,
+        "hoarder": -0.3937491124119189,
+        "clever-hoarder": -0.4717302581951378
+      },
+      "games": 800,
+      "mean": -0.34072772320818173
+    }
+  ],
+  "mean": -0.33604584351776673,
+  "spread": 0.04737080097941637,
+  "games": 2400
+}

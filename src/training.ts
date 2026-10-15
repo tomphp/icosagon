@@ -46,7 +46,7 @@ const gaussian = (random: Random, deviation: number) =>
   deviation * Math.sqrt(-2 * Math.log(1 - random())) * Math.cos(2 * Math.PI * random());
 
 /** A network with random weights, scaled so each unit's sum starts in tanh's sensitive range. */
-function randomNetwork(hidden: number, random: Random): Network {
+export function randomNetwork(hidden: number, random: Random): Network {
   const weights = (length: number, deviation: number) => Array.from({ length }, () => gaussian(random, deviation));
   return {
     hiddenWeights: Array.from({ length: hidden }, () => weights(INPUT_SIZE, 1 / Math.sqrt(INPUT_SIZE))),
@@ -68,7 +68,7 @@ function mutate(network: Network, mutation: number, random: Random): Network {
 }
 
 /** A Model of the Population, with no parent or report yet. */
-const modelOf = (population: Network[], seed: number, generations: number): Model => ({
+export const modelOf = (population: Network[], seed: number, generations: number): Model => ({
   version: MODEL_VERSION,
   shape: { inputs: INPUT_SIZE, hidden: population[0].hiddenBiases.length },
   population,
@@ -81,10 +81,10 @@ const modelOf = (population: Network[], seed: number, generations: number): Mode
 /** The Neural Strategy playing with just this network. */
 const neural = (network: Network): Strategy => ({ kind: "neural", model: modelOf([network], 0, 0) });
 
-const ENDINGS: Ending[] = ["award", "skip"];
+export const ENDINGS: Ending[] = ["award", "skip"];
 
 /** The seed of a game's own random source, drawn in turn from `random`, so no game's play depends on another's. */
-const nextSeed = (random: Random) => random() * 2 ** 32;
+export const nextSeed = (random: Random) => random() * 2 ** 32;
 
 /** The scripted Strategies every network plays in each Generation, in the order they follow the Population. */
 export const SCRIPTED = ["greedy", "hoarder", "clever-hoarder"] as const satisfies NamedStrategy[];

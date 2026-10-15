@@ -33,6 +33,7 @@ Run each fix as an experiment against a fixed protocol, one ticket at a time. Ke
 | Ticket | Variant | Seed 1 | Seed 2 | Seed 3 | Mean | Kept? |
 |---|---|---|---|---|---|---|
 | 01 | Defaults (population 24, survivors 6, mutation 0.05) | −0.311 (G −0.18 / H −0.39 / CH −0.36) | −0.250 (G +0.30 / H −0.55 / CH −0.50) | −0.325 (G −0.05 / H −0.46 / CH −0.47) | **−0.295** (spread 0.075) | baseline |
+| 03 | `npm run fit`: 20,000 games (10% Random Moves), 30 epochs, rate 0.05, 32 hidden; 9.5 min per seed | −0.310 (G +0.02 / H −0.50 / CH −0.45) | −0.357 (G −0.03 / H −0.53 / CH −0.51) | −0.341 (G −0.16 / H −0.39 / CH −0.47) | −0.336 (spread 0.047) | no |
 
 ## Decisions so far
 
@@ -40,6 +41,7 @@ Run each fix as an experiment against a fixed protocol, one ticket at a time. Ke
 
 - 01: Baseline at the defaults is −0.295 (spread 0.075). The `vs` margins climb only over the first ~10 Generations (Greedy −0.50 → about −0.06; Hoarder and Clever Hoarder −0.65 → about −0.50), then stay flat and noisy for the other 50. The final split varies a lot by seed: seed 2 beats Greedy (+0.30) but almost never beats the Hoarders; seed 1 does the reverse.
 - 02: `npm run bench` runs the protocol and gives the verdict. The win rule takes best-so-far's spread as the noise for both tests. Best so far: `results/01-baseline.json`.
+- 03: Fitting by backprop loses (−0.336 against −0.295; not kept). Its error flattens at about 0.13 by epoch 10 out of 30, on about 190,000 positions, so more training on the same signal doesn't help. It roughly matches Greedy but loses heavily to both Hoarders, as evolution does. **Decision: the bottleneck is the inputs, not the training method.** Tickets 04–08 go ahead as planned; ticket 08 (Settled input) is the most likely to matter. Best so far stays `results/01-baseline.json`.
 
 ## Out of scope / later
 

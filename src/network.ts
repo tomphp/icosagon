@@ -54,7 +54,7 @@ function contains(polygon: Vec[], p: Vec): boolean {
 }
 
 /** The network's inputs for the position, from the point of view of the Player. */
-function inputsFor(game: Game, player: Player): number[] {
+export function inputsFor(game: Game, player: Player): number[] {
   const inputs = Array<number>(INPUT_SIZE).fill(0);
   SAMPLE_SPOTS.forEach((spot, i) => {
     const colour = game.regions.find((r) => contains(r.polygon, spot))?.colour;
@@ -67,14 +67,17 @@ function inputsFor(game: Game, player: Player): number[] {
   return inputs;
 }
 
-/** How good the position is for the Player, who has just moved; higher is better. */
-export function rate(network: Network, game: Game, player: Player): number {
-  const inputs = inputsFor(game, player);
-  let output = network.outputBias;
-  network.hiddenWeights.forEach((weights, h) => {
+/** The hidden layer's outputs and the network's output for the inputs. */
+export function forward(network: Network, inputs: number[]): { hidden: number[]; output: number } {
+  const hidden = network.hiddenWeights.map((weights, h) => {
     let sum = network.hiddenBiases[h];
     for (let i = 0; i < inputs.length; i++) sum += weights[i] * inputs[i];
-    output += network.outputWeights[h] * Math.tanh(sum);
+    return Math.tanh(sum);
   });
-  return output;
+  let output = network.outputBias;
+  for (let h = 0; h < hidden.length; h++) output += network.outputWeights[h] * hidden[h];
+  return { hidden, output };
 }
+
+/** How good the position is for the Player, who has just moved; higher is better. */
+export const rate = (network: Network, game: Game, player: Player): number => forward(network, inputsFor(game, player)).output;

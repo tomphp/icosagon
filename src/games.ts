@@ -22,24 +22,27 @@ export interface GameSpec {
   blue: number;
   ending: Ending;
   seed: number;
+  /** The share of Moves, 0–1, played as Random instead of by the Mover's Strategy; none when omitted. */
+  randomShare?: number;
 }
 
-/** How a game ended. */
-export type Played = Pick<Game, "scores" | "outcome">;
+/** How a game ended, and the Moves that got it there. */
+export type Played = Pick<Game, "scores" | "outcome" | "moves">;
 
 /** Plays a whole game between the Strategies and returns how it ended. */
-function playGame(red: Strategy, blue: Strategy, ending: Ending, seed: number): Played {
+function playGame(red: Strategy, blue: Strategy, { ending, seed, randomShare }: GameSpec): Played {
   const random = seeded(seed);
   let game = createGame(ending);
   while (game.outcome === "in-progress") {
-    game = applyMove(game, chooseMove(game, game.mover === "red" ? red : blue, random));
+    const strategy = randomShare && random() < randomShare ? "random" : game.mover === "red" ? red : blue;
+    game = applyMove(game, chooseMove(game, strategy, random));
   }
-  return { scores: game.scores, outcome: game.outcome };
+  return { scores: game.scores, outcome: game.outcome, moves: game.moves };
 }
 
 /** Plays the games one after another on this thread, in order. */
 export const playHere = (strategies: Strategy[], games: GameSpec[]): Played[] =>
-  games.map(({ red, blue, ending, seed }) => playGame(strategies[red], strategies[blue], ending, seed));
+  games.map((spec) => playGame(strategies[spec.red], strategies[spec.blue], spec));
 
 /** Plays batches of games, possibly across worker threads, until closed. */
 export interface GamePool {

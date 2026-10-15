@@ -1,6 +1,6 @@
 # 03: Value network fitted by backprop
 
-Status: ready-for-agent
+Status: done
 
 **Hypothesis:** evolution gets one Fitness number per network per Generation; gradient training gets a signal from every position. Fitting the network directly to game outcomes should beat 60 Generations of evolution. If it doesn't, the inputs are the limit, not the training method.
 
@@ -8,7 +8,7 @@ Status: ready-for-agent
 
 **Blocked by:** 02
 
-- [ ] `fit` writes a loadable Model; the same seed gives the same Model
-- [ ] A test showing that one SGD step lowers the error on a batch (a gradient check against finite differences is enough)
-- [ ] Bench run on 3 seeds recorded in the Experiment log, with a verdict against the best so far
-- [ ] A decision line in the spec saying which is the bottleneck: the training method (fit wins clearly) or the inputs (it doesn't)
+- [x] `fit` writes a loadable Model; the same seed gives the same Model
+- [x] A test showing that one SGD step lowers the error on a batch (a gradient check against finite differences is enough)
+- [x] Bench run on 3 seeds recorded in the Experiment log, with a verdict against the best so far
+- [x] A decision line in the spec saying which is the bottleneck: the training method (fit wins clearly) or the inputs (it doesn't)

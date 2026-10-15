@@ -101,3 +101,7 @@ _Avoid_: Using it for a saved Model file
 
 **Fitness**:
 How well a network did in a Generation: its average Score margin (its Score minus its Opponent's) at Game over across all its games.
+
+**Fitting**:
+Producing a Model without evolution: a fresh network is fitted by backprop to the final Score margins of games among Greedy, Hoarder and Clever Hoarder, rating each position from the Mover's point of view. The Model it writes holds that network repeated to a full Population, so Training can continue from it.
+_Avoid_: Training (which means evolution here)
