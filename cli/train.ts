@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import { loadModel, saveModel, type Model } from "../src/model.ts";
 import { train, TRAINING_DEFAULTS } from "../src/training.ts";
 
-const usage = `Usage: npm run train -- --generations N --out models/NAME.json
+const usage = `Usage: npm run train -- (--generations N | --games N) --out models/NAME.json
   [--from MODEL | --population ${TRAINING_DEFAULTS.population} --hidden ${TRAINING_DEFAULTS.hidden}]
   [--survivors ${TRAINING_DEFAULTS.survivors}] [--mutation ${TRAINING_DEFAULTS.mutation}] [--seed N]`;
 
@@ -27,6 +27,7 @@ function numberFlag(name: string, value: string | undefined, valid: (n: number) 
 const { values } = parseArgs({
   options: {
     generations: { type: "string" },
+    games: { type: "string" },
     population: { type: "string" },
     hidden: { type: "string" },
     survivors: { type: "string" },
@@ -52,7 +53,10 @@ function fromModel(path: string): { model: Model; name: string } {
 const from = values.from ? fromModel(values.from) : undefined;
 
 const seed = numberFlag("seed", values.seed, whole(0, 2 ** 32 - 1), Math.floor(Math.random() * 2 ** 32));
-const generations = numberFlag("generations", values.generations, whole(1));
+// A games budget stops after the Generation that reaches it, so Generations of any cost compare at equal games.
+const budget = values.games === undefined ? Infinity : numberFlag("games", values.games, whole(1));
+const generations =
+  values.generations === undefined && budget < Infinity ? Infinity : numberFlag("generations", values.generations, whole(1));
 const population = numberFlag("population", values.population, whole(2), TRAINING_DEFAULTS.population);
 const hidden = numberFlag("hidden", values.hidden, whole(1), TRAINING_DEFAULTS.hidden);
 const survivors = numberFlag("survivors", values.survivors, between(0, 1), TRAINING_DEFAULTS.survivors);
@@ -90,10 +94,11 @@ const model = await train({
       `average ${average.toFixed(4)}`,
       ...Object.entries(progress.margins).map(([opponent, margin]) => `vs ${opponent} ${signed(margin)}`),
     ];
-    console.log(`Generation ${progress.generation}/${generations}: ${stats.join(", ")}`);
+    console.log(`Generation ${progress.generation}${generations < Infinity ? `/${generations}` : ""}: ${stats.join(", ")}`);
+    if (games >= budget) stop.abort();
   },
 });
-if (stop.signal.aborted) console.log(`Stopped after ${model.generations - (from?.model.generations ?? 0)} of ${generations} Generations`);
+if (stop.signal.aborted && games < budget) console.log(`Stopped after ${model.generations - (from?.model.generations ?? 0)} of ${generations} Generations`);
 
 for (const [opponent, r] of Object.entries(model.report!)) {
   const margin = signed(r.margin);

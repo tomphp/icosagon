@@ -9,7 +9,8 @@
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "train": "node cli/train.ts",
-    "match": "node cli/match.ts"
+    "match": "node cli/match.ts",
+    "bench": "node cli/bench.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

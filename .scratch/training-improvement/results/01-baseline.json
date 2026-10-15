@@ -1,0 +1,38 @@
+{
+  "args": ["--generations", "60"],
+  "seeds": [
+    {
+      "seed": 1,
+      "margins": {
+        "greedy": -0.1826,
+        "hoarder": -0.3877,
+        "clever-hoarder": -0.3621
+      },
+      "games": 84320,
+      "mean": -0.3108
+    },
+    {
+      "seed": 2,
+      "margins": {
+        "greedy": 0.297,
+        "hoarder": -0.5454,
+        "clever-hoarder": -0.5016
+      },
+      "games": 84320,
+      "mean": -0.25
+    },
+    {
+      "seed": 3,
+      "margins": {
+        "greedy": -0.0482,
+        "hoarder": -0.4561,
+        "clever-hoarder": -0.4693
+      },
+      "games": 84320,
+      "mean": -0.32453333333333334
+    }
+  ],
+  "mean": -0.2951111111111111,
+  "spread": 0.07453333333333334,
+  "games": 252960
+}

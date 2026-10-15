@@ -23,9 +23,10 @@ Run each fix as an experiment against a fixed protocol, one ticket at a time. Ke
 
 - **Metric**: the final report's average margin against Greedy, Hoarder and Clever Hoarder (200 games each), averaged over 3 seeds. Secondary: the per-Generation `vs` margins as a learning curve.
 - **Seeds**: 1, 2, 3.
-- **Budget**: G = 60 Generations (`--generations 60`). At the default settings a Generation takes about 9.3 s on 16 cores and the final report about 10 s, so one run takes about 9.5 minutes (84,320 games). If an experiment changes the number of games per Generation (Population size, extra games), compare at equal **games played** too, not only equal Generations.
-- **Win rule**: a change is kept if its mean margin beats best-so-far by more than the spread between seeds, and no seed is clearly worse. Otherwise revert it and record it as a loss.
-- **Logs**: `npm run train -- ... --out /tmp/... | tee .scratch/training-improvement/logs/<ticket>-<variant>-s<seed>.log`. Logs are not committed. Model files from experiments stay out of `models/`.
+- **Budget**: G = 60 Generations (`--generations 60`). At the default settings a Generation takes about 9.3 s on 16 cores and the final report about 10 s, so one run takes about 9.5 minutes (84,320 games). If an experiment changes the number of games per Generation (Population size, extra games), compare at equal **games played** too, not only equal Generations: `--games N` stops Training after the Generation that reaches N games (84,320 less the 800 report games is the baseline's 83,520).
+- **Win rule**: a change is kept if its mean margin beats best-so-far by more than best-so-far's spread between seeds, and no seed is clearly worse: below best-so-far's same seed by more than that spread. Otherwise revert it and record it as a loss.
+- **Running**: `npm run bench -- --out .scratch/training-improvement/results/<ticket>-<variant> --best .scratch/training-improvement/results/<best>.json [Training flags]` trains on seeds 1–3 (`--generations 60` unless `--generations` or `--games` is given), prints each seed's margins, the mean, spread and games played, and the verdict. Give it three Model files (one per seed) instead of Training flags to judge Models made another way. It writes `<ticket>-<variant>-s<seed>.log` (not committed) and `<ticket>-<variant>.json` (committed), which is the `--best` for later experiments if it is kept. Model files go to a temporary directory, never `models/`.
+- **Best so far**: `results/01-baseline.json`.
 
 ## Experiment log
 
@@ -38,6 +39,7 @@ Run each fix as an experiment against a fixed protocol, one ticket at a time. Ke
 (One line per finished ticket: what won, and the new best-so-far settings.)
 
 - 01: Baseline at the defaults is −0.295 (spread 0.075). The `vs` margins climb only over the first ~10 Generations (Greedy −0.50 → about −0.06; Hoarder and Clever Hoarder −0.65 → about −0.50), then stay flat and noisy for the other 50. The final split varies a lot by seed: seed 2 beats Greedy (+0.30) but almost never beats the Hoarders; seed 1 does the reverse.
+- 02: `npm run bench` runs the protocol and gives the verdict. The win rule takes best-so-far's spread as the noise for both tests. Best so far: `results/01-baseline.json`.
 
 ## Out of scope / later
 

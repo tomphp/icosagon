@@ -87,7 +87,7 @@ const ENDINGS: Ending[] = ["award", "skip"];
 const nextSeed = (random: Random) => random() * 2 ** 32;
 
 /** The scripted Strategies every network plays in each Generation, in the order they follow the Population. */
-const SCRIPTED: NamedStrategy[] = ["greedy", "hoarder", "clever-hoarder"];
+export const SCRIPTED = ["greedy", "hoarder", "clever-hoarder"] as const satisfies NamedStrategy[];
 
 /** The opponents in Training's final report: the scripted ones, then Random. */
 const REPORTED: NamedStrategy[] = [...SCRIPTED, "random"];
@@ -227,6 +227,30 @@ async function playGroups(pool: GamePool, strategies: Strategy[], groups: GameSp
   return groups.map((games) => played.slice(start, (start += games.length)));
 }
 
+/** How the Strategy did in `games` games against each reported opponent. */
+async function playReport(pool: GamePool, strategy: Strategy, games: number, random: Random): Promise<NonNullable<Model["report"]>> {
+  // The Strategy, then each reported opponent.
+  const played = await playGroups(
+    pool,
+    [strategy, ...REPORTED],
+    REPORTED.map((_, r) => pairingGames(0, 1 + r, games, random)),
+  );
+  return Object.fromEntries(REPORTED.map((opponent, r) => [opponent, pairResults(played[r])[0]]));
+}
+
+/**
+ * Plays a Model's best network against the opponents of Training's final report, `games` games each. The seed
+ * fully determines the results.
+ */
+export async function report(model: Model, options: { games: number; seed: number; workers?: number }): Promise<NonNullable<Model["report"]>> {
+  const pool = gamePool(options.workers);
+  try {
+    return await playReport(pool, { kind: "neural", model }, options.games, seeded(options.seed));
+  } finally {
+    await pool.close();
+  }
+}
+
 /**
  * Evolves a Population over the Generations and returns it as a Model, ready for its next
  * Generation: the survivors of the last Generation best first, then their mutated copies in the order
@@ -272,14 +296,7 @@ export async function train(options: TrainingOptions): Promise<Model> {
       completed = generation;
     }
 
-    // The best network, then each reported opponent.
-    const reportGames = options.reportGames ?? TRAINING_DEFAULTS.reportGames;
-    const played = await playGroups(
-      pool,
-      [neural(population[0]), ...REPORTED],
-      REPORTED.map((_, r) => pairingGames(0, 1 + r, reportGames, random)),
-    );
-    const report = Object.fromEntries(REPORTED.map((opponent, r) => [opponent, pairResults(played[r])[0]]));
+    const report = await playReport(pool, neural(population[0]), options.reportGames ?? TRAINING_DEFAULTS.reportGames, random);
     const generations = (from?.model.generations ?? 0) + completed;
     return { ...modelOf(population, options.seed, generations), parent: from?.name ?? null, report };
   } finally {

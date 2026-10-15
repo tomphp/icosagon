@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Strategy } from "./computer.ts";
 import { loadModel, saveModel, type Model } from "./model.ts";
-import { match, train, type Progress, type TrainingOptions } from "./training.ts";
+import { match, report, train, type Progress, type TrainingOptions } from "./training.ts";
 
 // Training plays the Hoarders, whose games are slow, so these tests need longer than the default.
 vi.setConfig({ testTimeout: 30_000 });
@@ -175,6 +175,15 @@ describe("Training's final report", () => {
       expect(saved[opponent as keyof typeof saved]).toMatchObject(counts);
       expect(saved[opponent as keyof typeof saved]!.margin).toBeCloseTo(margin, 4);
     }
+  });
+});
+
+describe("report", () => {
+  it("plays a Model's best network against the same opponents as Training's final report, the seed fixing the results", async () => {
+    const reported = await report(model, { games: 4, seed: 3 });
+    expect(Object.keys(reported)).toEqual(Object.keys(model.report!));
+    for (const results of Object.values(reported)) expect(results.wins + results.draws + results.losses).toBe(4);
+    expect(await report(model, { games: 4, seed: 3, workers: 1 })).toEqual(reported);
   });
 });
 
