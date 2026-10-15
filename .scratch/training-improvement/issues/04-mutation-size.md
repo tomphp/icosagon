@@ -1,6 +1,6 @@
 # 04: Smaller mutation
 
-Status: ready-for-agent
+Status: done
 
 **Hypothesis:** σ 0.05 is too large. Smaller steps let children improve on their parents more often.
 
@@ -8,5 +8,5 @@ Status: ready-for-agent
 
 **Blocked by:** 02 (can run alongside 03)
 
-- [ ] 3 variants benched and recorded, each with its verdict
-- [ ] The default updated if a variant wins; a decision line added to the spec
+- [x] 3 variants benched and recorded, each with its verdict
+- [x] The default updated if a variant wins; a decision line added to the spec
