@@ -13,10 +13,11 @@ Suspected causes, from reading the code:
 3. **Small Population**: 24 networks, 6 survivors.
 4. **Weak inputs**: there is no Settled signal, and the 61 sample spots miss small Regions near the edge.
 5. **1-ply ceiling**: the network rates positions one Move ahead, the same depth as Greedy. This is out of scope here and noted for later.
+6. **Training method**: evolution gives each network one Fitness number per Generation, while backprop would learn from every position played. Ticket 03 tests this with a network fitted directly to game outcomes; ticket 09 then combines both methods if gradients help. This reopens ADR 0001.
 
 ## Solution
 
-Run each fix as an experiment against a fixed protocol, one ticket at a time. Keep a change only if it beats the best-so-far result, and build each experiment on the best-so-far settings.
+Run each fix as an experiment against a fixed protocol, one ticket at a time. Keep a change only if it beats the best-so-far result, and build each experiment on the best-so-far settings. Ticket 02 adds a `bench` command that runs the protocol and gives each variant's verdict.
 
 ## Protocol
 
@@ -41,5 +42,4 @@ Run each fix as an experiment against a fixed protocol, one ticket at a time. Ke
 ## Out of scope / later
 
 - Lookahead (2-ply) when choosing a Move.
-- Switching to gradient training. This would reopen ADR 0001.
 - Crossover.
