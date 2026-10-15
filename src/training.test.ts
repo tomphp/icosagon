@@ -6,13 +6,14 @@ import { match, report, train, type Progress, type TrainingOptions } from "./tra
 // Training plays the Hoarders, whose games are slow, so these tests need longer than the default.
 vi.setConfig({ testTimeout: 30_000 });
 
-/** Tiny settings so Training takes moments: 4 networks, 2 Generations, 2 hidden units, 1 survivor, 4 report games. */
+/** Tiny settings so Training takes moments: 4 networks, 2 Generations, 2 hidden units, 1 survivor, 1 scripted game, 4 report games. */
 const tiny: TrainingOptions = {
   generations: 2,
   population: 4,
   hidden: 2,
   survivors: 0.25,
   mutation: 0.1,
+  scriptedGames: 1,
   seed: 1,
   reportGames: 4,
 };
@@ -77,6 +78,12 @@ describe("Training", () => {
   it("plays the round-robin under both colours and both Endings plus 4 games per network against each scripted opponent", () => {
     // 6 pairs × 4 games + 4 networks × 4 games against each of the 3 scripted opponents.
     for (const { games } of progress) expect(games).toBe(6 * 4 + 4 * 4 * 3);
+  });
+
+  it("plays each network's 4 games against each scripted opponent as many times over as asked", async () => {
+    const { progress } = await trainCollecting({ ...tiny, generations: 1, scriptedGames: 3 });
+    // 6 pairs × 4 games + 3 repeats × 4 networks × 4 games against each of the 3 scripted opponents.
+    expect(progress[0].games).toBe(6 * 4 + 3 * 4 * 4 * 3);
   });
 
   it("reports the Population's average margin against each scripted opponent, which the round-robin games don't affect", () => {

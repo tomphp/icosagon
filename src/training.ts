@@ -17,6 +17,8 @@ export interface TrainingOptions {
   seed: number;
   /** The Model to continue Training from, and its name, recorded as the new Model's parent. */
   from?: { model: Model; name: string };
+  /** How many times each network plays its 4 games against each scripted opponent per Generation; 8 when omitted. */
+  scriptedGames?: number;
   /** How many games the best network plays against each opponent in the final report; 200 when omitted. */
   reportGames?: number;
   /** Called after each Generation's games. */
@@ -27,7 +29,7 @@ export interface TrainingOptions {
   signal?: AbortSignal;
 }
 
-export const TRAINING_DEFAULTS = { population: 24, hidden: 32, survivors: 0.25, mutation: 0.05, reportGames: 200 } as const;
+export const TRAINING_DEFAULTS = { population: 24, hidden: 32, survivors: 0.25, mutation: 0.05, scriptedGames: 8, reportGames: 200 } as const;
 
 /** How a Generation went. */
 export interface Progress {
@@ -94,14 +96,16 @@ const REPORTED: NamedStrategy[] = [...SCRIPTED, "random"];
 
 /**
  * One Generation's games, between the Population's networks by index and the scripted opponents, from
- * index `size`: every pair, and every network against each scripted opponent, under both colours and
- * both Endings.
+ * index `size`: every pair, and every network against each scripted opponent `scriptedGames` times over,
+ * under both colours and both Endings.
  */
-function schedule(size: number, random: Random): GameSpec[] {
+function schedule(size: number, scriptedGames: number, random: Random): GameSpec[] {
   const pairs: [number, number][] = [];
   for (let a = 0; a < size; a++) {
     for (let b = a + 1; b < size; b++) pairs.push([a, b]);
-    for (let s = 0; s < SCRIPTED.length; s++) pairs.push([a, size + s]);
+    for (let s = 0; s < SCRIPTED.length; s++) {
+      for (let k = 0; k < scriptedGames; k++) pairs.push([a, size + s]);
+    }
   }
   return pairs.flatMap(([a, b]) =>
     ENDINGS.flatMap((ending) => [
@@ -117,6 +121,7 @@ function schedule(size: number, random: Random): GameSpec[] {
  */
 async function playGeneration(
   population: Network[],
+  scriptedGames: number,
   random: Random,
   pool: GamePool,
   signal?: AbortSignal,
@@ -134,7 +139,7 @@ async function playGeneration(
       vsScripted[opponent - size].games++;
     }
   };
-  const games = schedule(size, random);
+  const games = schedule(size, scriptedGames, random);
   const played = await pool.play([...population.map(neural), ...SCRIPTED], games, signal);
   games.forEach(({ red, blue }, i) => {
     const { scores } = played[i];
@@ -268,13 +273,14 @@ export async function train(options: TrainingOptions): Promise<Model> {
     from?.model.population ?? Array.from({ length: options.population }, () => randomNetwork(options.hidden, random));
   const size = population.length;
   const survivorCount = Math.max(1, Math.round(options.survivors * size));
+  const scriptedGames = options.scriptedGames ?? TRAINING_DEFAULTS.scriptedGames;
   const pool = gamePool(options.workers);
   try {
     let completed = 0;
     for (let generation = 1; generation <= options.generations; generation++) {
       let played;
       try {
-        played = await playGeneration(population, random, pool, options.signal);
+        played = await playGeneration(population, scriptedGames, random, pool, options.signal);
       } catch (error) {
         // Stopped: the Generation in progress is dropped, and the last complete one stands.
         if (options.signal?.aborted) break;

@@ -6,7 +6,8 @@ import { train, TRAINING_DEFAULTS } from "../src/training.ts";
 
 const usage = `Usage: npm run train -- (--generations N | --games N) --out models/NAME.json
   [--from MODEL | --population ${TRAINING_DEFAULTS.population} --hidden ${TRAINING_DEFAULTS.hidden}]
-  [--survivors ${TRAINING_DEFAULTS.survivors}] [--mutation ${TRAINING_DEFAULTS.mutation}] [--seed N]`;
+  [--survivors ${TRAINING_DEFAULTS.survivors}] [--mutation ${TRAINING_DEFAULTS.mutation}]
+  [--scripted-games ${TRAINING_DEFAULTS.scriptedGames}] [--seed N]`;
 
 /** Prints the problem and the usage, and exits. */
 function fail(problem: string): never {
@@ -32,6 +33,7 @@ const { values } = parseArgs({
     hidden: { type: "string" },
     survivors: { type: "string" },
     mutation: { type: "string" },
+    "scripted-games": { type: "string" },
     seed: { type: "string" },
     out: { type: "string" },
     from: { type: "string" },
@@ -61,6 +63,7 @@ const population = numberFlag("population", values.population, whole(2), TRAININ
 const hidden = numberFlag("hidden", values.hidden, whole(1), TRAINING_DEFAULTS.hidden);
 const survivors = numberFlag("survivors", values.survivors, between(0, 1), TRAINING_DEFAULTS.survivors);
 const mutation = numberFlag("mutation", values.mutation, between(0, Infinity), TRAINING_DEFAULTS.mutation);
+const scriptedGames = numberFlag("scripted-games", values["scripted-games"], whole(1), TRAINING_DEFAULTS.scriptedGames);
 console.log(`Seed ${seed}`);
 if (from) console.log(`Continuing ${from.name} (${from.model.generations} gens)`);
 
@@ -82,6 +85,7 @@ const model = await train({
   hidden,
   survivors,
   mutation,
+  scriptedGames,
   seed,
   from,
   signal: stop.signal,

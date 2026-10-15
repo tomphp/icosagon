@@ -1,6 +1,6 @@
 # 06: Less noisy Fitness
 
-Status: ready-for-agent
+Status: done
 
 **Hypothesis:** 4 games against each scripted opponent can't separate networks of similar strength, so survival is mostly luck.
 
@@ -8,6 +8,6 @@ Status: ready-for-agent
 
 **Blocked by:** 04 (can run alongside 05)
 
-- [ ] Option and flag added; the default gives the same Model for the same seed
-- [ ] The Training test for Generation game count covers the new option
-- [ ] Variants benched at equal Generations and at equal games played; kept or removed
+- [x] Option and flag added; with 1, the same seed still gives the same Model (checked byte for byte against the old code); the default is now 8
+- [x] The Training test for Generation game count covers the new option
+- [x] Variants benched at equal Generations and at equal games played; kept by judgement, default 8

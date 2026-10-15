@@ -1,0 +1,45 @@
+{
+  "args": [
+    "--out",
+    ".scratch/training-improvement/results/06-scripted4",
+    "--best",
+    ".scratch/training-improvement/results/08-settled.json",
+    "--scripted-games",
+    "4"
+  ],
+  "seeds": [
+    {
+      "seed": 1,
+      "margins": {
+        "greedy": 0.3585,
+        "hoarder": -0.0688,
+        "clever-hoarder": -0.0813
+      },
+      "games": 136160,
+      "mean": 0.06946666666666666
+    },
+    {
+      "seed": 2,
+      "margins": {
+        "greedy": 0.2844,
+        "hoarder": -0.0636,
+        "clever-hoarder": -0.0314
+      },
+      "games": 136160,
+      "mean": 0.06313333333333333
+    },
+    {
+      "seed": 3,
+      "margins": {
+        "greedy": 0.327,
+        "hoarder": -0.1258,
+        "clever-hoarder": -0.08
+      },
+      "games": 136160,
+      "mean": 0.040400000000000005
+    }
+  ],
+  "mean": 0.057666666666666665,
+  "spread": 0.029066666666666657,
+  "games": 408480
+}
