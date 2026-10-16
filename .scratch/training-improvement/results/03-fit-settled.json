@@ -1,0 +1,46 @@
+{
+  "args": [
+    "--out",
+    ".scratch/training-improvement/results/03-fit-settled",
+    "--best",
+    ".scratch/training-improvement/results/06-scripted8-equal-games.json",
+    "/home/tom/.claude/jobs/b749b36d/tmp/fit-settled-s1.json",
+    "/home/tom/.claude/jobs/b749b36d/tmp/fit-settled-s2.json",
+    "/home/tom/.claude/jobs/b749b36d/tmp/fit-settled-s3.json"
+  ],
+  "seeds": [
+    {
+      "seed": 1,
+      "margins": {
+        "greedy": 0.4221393161458034,
+        "hoarder": -0.016603717040314925,
+        "clever-hoarder": -0.017568241711383985
+      },
+      "games": 800,
+      "mean": 0.1293224524647015
+    },
+    {
+      "seed": 2,
+      "margins": {
+        "greedy": 0.3500401888992758,
+        "hoarder": -0.44269739062751545,
+        "clever-hoarder": -0.4497037932035357
+      },
+      "games": 800,
+      "mean": -0.18078699831059178
+    },
+    {
+      "seed": 3,
+      "margins": {
+        "greedy": 0.3686578537974864,
+        "hoarder": -0.36905788957897967,
+        "clever-hoarder": -0.38275269286262076
+      },
+      "games": 800,
+      "mean": -0.12771757621470467
+    }
+  ],
+  "mean": -0.059727374020198315,
+  "spread": 0.3101094507752933,
+  "games": 2400
+}
