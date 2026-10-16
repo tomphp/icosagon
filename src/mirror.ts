@@ -35,3 +35,20 @@ export function syncMirror(container: HTMLElement, buttons: Button[], press: (bu
     });
   });
 }
+
+/**
+ * Keeps a line in the `aria-live` container per status entry, by name, changing only the lines whose text
+ * changed so only they are announced. Empty lines, and lines missing from the entries, are hidden.
+ */
+export function syncStatus(container: HTMLElement, lines: Record<string, string>) {
+  for (const [line, text] of Object.entries(lines)) {
+    let el = container.querySelector<HTMLElement>(`[data-line="${line}"]`);
+    if (!el) {
+      el = document.createElement("p");
+      el.dataset.line = line;
+      container.append(el);
+    }
+    if (el.textContent !== text) el.textContent = text;
+  }
+  for (const el of container.children as HTMLCollectionOf<HTMLElement>) el.hidden = !lines[el.dataset.line!];
+}

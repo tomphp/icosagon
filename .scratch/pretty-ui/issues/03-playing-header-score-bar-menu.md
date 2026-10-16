@@ -4,11 +4,11 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Header labels, colours and the left/right mapping follow the spec, including when the coin flip makes the Human Blue
-- [ ] The Mover is boxed in their colour after every Move, including after the Computer's reply
-- [ ] The Computer's last Move is shown under its name until the Human moves again
-- [ ] The score bar segments, 50% marker and percentages match the Scores and line up with the header sides
-- [ ] The Menu button (canvas and DOM mirror) returns to the Start Screen
-- [ ] The status mirror announces the turn, Scores and the Computer's last Move; the old HUD elements are removed and the browser tests read the mirror
+- [x] Header labels, colours and the left/right mapping follow the spec, including when the coin flip makes the Human Blue
+- [x] The Mover is boxed in their colour after every Move, including after the Computer's reply
+- [x] The Computer's last Move is shown under its name until the Human moves again
+- [x] The score bar segments, 50% marker and percentages match the Scores and line up with the header sides
+- [x] The Menu button (canvas and DOM mirror) returns to the Start Screen
+- [x] The status mirror announces the turn, Scores and the Computer's last Move; the old HUD elements are removed and the browser tests read the mirror

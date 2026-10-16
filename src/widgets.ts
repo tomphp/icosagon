@@ -111,3 +111,35 @@ export function drawWidgets(ctx: CanvasRenderingContext2D, texts: Text[], button
     ctx.fillText(label, rect.x + rect.width / 2, rect.y + rect.height / 2);
   }
 }
+
+/** One Player's share of the score bar. */
+export interface Share {
+  fraction: number;
+  colour: string;
+  label: string;
+}
+
+/**
+ * Draws a bar across the rectangle: the left share filled from the left, the right share from the right, a
+ * neutral gap between them, a marker at 50%, and each share's label at its end.
+ */
+export function drawScoreBar(ctx: CanvasRenderingContext2D, { x, y, width, height }: Rect, left: Share, right: Share) {
+  ctx.fillStyle = "#e6dfd3";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = left.colour;
+  ctx.fillRect(x, y, width * left.fraction, height);
+  ctx.fillStyle = right.colour;
+  ctx.fillRect(x + width * (1 - right.fraction), y, width * right.fraction, height);
+  ctx.fillStyle = INK;
+  ctx.fillRect(x + width / 2 - 1, y, 2, height);
+
+  ctx.font = fontOf(14);
+  ctx.textBaseline = "middle";
+  const pad = 10;
+  for (const [share, align, at] of [[left, "left", x + pad], [right, "right", x + width - pad]] as const) {
+    ctx.textAlign = align;
+    // White on the share's colour, unless the share is too narrow to hold its label.
+    ctx.fillStyle = width * share.fraction >= ctx.measureText(share.label).width + 2 * pad ? "#fff" : INK;
+    ctx.fillText(share.label, at, y + height / 2);
+  }
+}

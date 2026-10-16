@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import { chooseMove } from "../src/computer.ts";
 import { applyMove, createGame, type Ending, type Game, type Move, type Player } from "../src/game.ts";
-import { drag, hasButton, isPressed, isVisible, launch, pillLabels, press, start, stubRandom, text } from "./page.ts";
+import { drag, hasButton, isPressed, launch, pillLabels, press, start, status, stubRandom, text } from "./page.ts";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -42,9 +42,10 @@ const percent = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
 
 const scoreText = (game: Game) => `Red ${percent(game.scores.red)}, Blue ${percent(game.scores.blue)}`;
 
-async function expectScores(page: Page, game: Game) {
-  expect(await text(page, "#score-red")).toBe(`Red ${percent(game.scores.red)}`);
-  expect(await text(page, "#score-blue")).toBe(`Blue ${percent(game.scores.blue)}`);
+/** Checks the status mirror's Scores, the Human's first as they are on the left. */
+async function expectScores(page: Page, game: Game, human: Player = "red") {
+  const score = (p: Player) => `${p === "red" ? "Red" : "Blue"} ${percent(game.scores[p])}`;
+  expect((await status(page)).scores).toBe(`${score(human)}, ${score(human === "red" ? "blue" : "red")}`);
 }
 
 async function openPage(randomValues: number[]) {
@@ -65,16 +66,18 @@ async function openAgainstRandom(humanColour: number, randomValues: number[], ..
 }
 
 describe("the Opponent on the page", () => {
-  it("in Human vs Human, shows no colour label and lets both Players move", async () => {
+  it("in Human vs Human, puts Red on the left and Blue on the right and lets both Players move", async () => {
     const page = await openPage([HUMAN_RED]);
     await start(page, "opponent:human");
 
-    expect(await isVisible(page, "#you")).toBe(false);
-    expect(await isVisible(page, "#computer-played")).toBe(false);
-    expect(await text(page, "#turn")).toBe("Red to move");
+    expect(await status(page)).toEqual({
+      sides: "Human (Red) vs Human (Blue)",
+      turn: "Red to move",
+      scores: "Red 0.0%, Blue 0.0%",
+    });
 
     await drag(page, 0, 10);
-    expect(await text(page, "#turn")).toBe("Blue to move");
+    expect((await status(page)).turn).toBe("Blue to move");
   });
 
   it("against the Computer as Red, starts with an empty Board and replies at once to each Move", async () => {
@@ -82,15 +85,14 @@ describe("the Opponent on the page", () => {
     const { game: afterReply, values } = script("award", "blue", [[0, 10], [5, 15]]);
     const page = await openAgainstRandom(HUMAN_RED, values);
 
-    expect(await isVisible(page, "#you")).toBe(true);
-    expect(await text(page, "#you")).toBe("You are Red");
-    expect(await text(page, "#turn")).toBe("Your move (Red)");
+    expect((await status(page)).sides).toBe("Human (Red) vs Computer (Blue)");
+    expect((await status(page)).turn).toBe("Your move (Red)");
     await expectScores(page, createGame("award"));
-    expect(await isVisible(page, "#computer-played")).toBe(false);
+    expect((await status(page)).computer).toBeUndefined();
 
     await drag(page, 0, 10);
-    expect(await text(page, "#turn")).toBe("Your move (Red)");
-    expect(await text(page, "#computer-played")).toBe("Computer played 5→15");
+    expect((await status(page)).turn).toBe("Your move (Red)");
+    expect((await status(page)).computer).toBe("Computer played 5→15");
     await expectScores(page, afterReply);
   });
 
@@ -101,24 +103,24 @@ describe("the Opponent on the page", () => {
     const page = await openAgainstRandom(HUMAN_BLUE, [...values, HUMAN_RED]);
     expect(openingValues).toEqual(values.slice(0, 1));
 
-    expect(await text(page, "#you")).toBe("You are Blue");
-    expect(await text(page, "#turn")).toBe("Your move (Blue)");
-    await expectScores(page, opening);
-    expect(await text(page, "#computer-played")).toBe("Computer played 0→10");
+    expect((await status(page)).sides).toBe("Human (Blue) vs Computer (Red)");
+    expect((await status(page)).turn).toBe("Your move (Blue)");
+    await expectScores(page, opening, "blue");
+    expect((await status(page)).computer).toBe("Computer played 0→10");
 
     await drag(page, 5, 15);
-    expect(await text(page, "#turn")).toBe("Your move (Blue)");
-    expect(await text(page, "#computer-played")).toBe("Computer played 2→12");
-    await expectScores(page, afterReply);
+    expect((await status(page)).turn).toBe("Your move (Blue)");
+    expect((await status(page)).computer).toBe("Computer played 2→12");
+    await expectScores(page, afterReply, "blue");
 
     // The Start Screen keeps the Settings, and the next game flips the colours again.
     await press(page, "menu");
     expect(await isPressed(page, "opponent:computer")).toBe(true);
     expect(await isPressed(page, "strategy:random")).toBe(true);
     await press(page, "start");
-    expect(await text(page, "#you")).toBe("You are Red");
-    expect(await text(page, "#turn")).toBe("Your move (Red)");
-    expect(await isVisible(page, "#computer-played")).toBe(false);
+    expect((await status(page)).sides).toBe("Human (Red) vs Computer (Blue)");
+    expect((await status(page)).turn).toBe("Your move (Red)");
+    expect((await status(page)).computer).toBeUndefined();
     await expectScores(page, createGame("award"));
   });
 });
@@ -145,13 +147,13 @@ describe("Strategy on the page", () => {
     const page = await openPage([HUMAN_BLUE, value, HUMAN_BLUE, value]);
 
     await start(page);
-    expect(await text(page, "#computer-played")).toBe(`Computer played ${greedy.start}→${greedy.end}`);
-    await expectScores(page, applyMove(fresh, greedy));
+    expect((await status(page)).computer).toBe(`Computer played ${greedy.start}→${greedy.end}`);
+    await expectScores(page, applyMove(fresh, greedy), "blue");
 
     await press(page, "menu");
     await start(page, "strategy:random");
-    expect(await text(page, "#computer-played")).toBe(`Computer played ${random.start}→${random.end}`);
-    await expectScores(page, applyMove(fresh, random));
+    expect((await status(page)).computer).toBe(`Computer played ${random.start}→${random.end}`);
+    await expectScores(page, applyMove(fresh, random), "blue");
   });
 });
 
@@ -167,9 +169,9 @@ describe("a stuck game against the Computer on the page", () => {
 
     for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 0)) await drag(page, start, end);
 
-    expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
+    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
     // The Human made the last Move, so the Computer's earlier Move is no longer shown.
-    expect(await isVisible(page, "#computer-played")).toBe(false);
+    expect((await status(page)).computer).toBeUndefined();
     expect(await text(page, "#result")).toBe(`Computer wins: ${scoreText(game)}`);
     await expectScores(page, game);
   });
@@ -180,26 +182,26 @@ describe("a stuck game against the Computer on the page", () => {
 
     for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) await drag(page, start, end);
 
-    expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
+    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
     expect(await text(page, "#result")).toBe(`You win: ${scoreText(game)}`);
-    await expectScores(page, game);
+    await expectScores(page, game, "blue");
   });
 
   it("ends when the Human is stuck, under Skip", async () => {
     const { game, values } = script("skip", "red", stuckGame);
     const page = await openAgainstRandom(HUMAN_BLUE, values, "ending:skip");
-    expect(await text(page, "#you")).toBe("You are Blue");
+    expect((await status(page)).sides).toBe("Human (Blue) vs Computer (Red)");
 
     for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) await drag(page, start, end);
 
-    expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move");
-    expect(await text(page, "#computer-played")).toBe("Computer played 6→16");
+    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move");
+    expect((await status(page)).computer).toBe("Computer played 6→16");
     expect(await text(page, "#result")).toBe(`Computer wins: ${scoreText(game)}`);
-    await expectScores(page, game);
+    await expectScores(page, game, "blue");
 
     // The game is over, so no Line can be drawn between the last two Points.
     await drag(page, 7, 8);
-    await expectScores(page, game);
+    await expectScores(page, game, "blue");
   });
 });
 
@@ -215,7 +217,7 @@ async function playToGameOver({ value, label }: { value: string; label: string }
   const key = `strategy:${value}`;
   expect(await pillLabels(page, key)).toEqual([label]);
   await start(page, key);
-  expect(await text(page, "#you")).toBe("You are Red");
+  expect((await status(page)).sides).toBe("Human (Red) vs Computer (Blue)");
 
   let game = createGame("award");
   while (game.outcome === "in-progress") {
@@ -224,7 +226,7 @@ async function playToGameOver({ value, label }: { value: string; label: string }
     await drag(page, move.start, move.end);
     game = applyMove(game, move);
     if (game.outcome !== "in-progress") break;
-    const played = (await text(page, "#computer-played"))!.match(/^Computer played (\d+)→(\d+)$/);
+    const played = (await status(page)).computer.match(/^Computer played (\d+)→(\d+)$/);
     expect(played).not.toBeNull();
     game = applyMove(game, { start: Number(played![1]), end: Number(played![2]) });
     await expectScores(page, game);

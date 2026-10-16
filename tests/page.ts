@@ -61,8 +61,7 @@ export async function resizeWindow(page: Page, width: number, height: number) {
 }
 
 /**
- * The canvas's on-screen size; whether it fills the window below the HUD, edge to edge and down to the
- * bottom; and whether its backing store matches the device's pixel ratio.
+ * The canvas's on-screen size; whether it fills the window edge to edge; and whether its backing store matches the device's pixel ratio.
  */
 export function canvasBox(page: Page) {
   return page.$eval("canvas", (c) => {
@@ -70,7 +69,7 @@ export function canvasBox(page: Page) {
     return {
       width: r.width,
       height: r.height,
-      fills: r.left === 0 && r.top > 0 && r.right === window.innerWidth && Math.abs(r.bottom - window.innerHeight) < 1,
+      fills: r.left === 0 && r.top === 0 && r.right === window.innerWidth && Math.abs(r.bottom - window.innerHeight) < 1,
       sharp: c.width === Math.round(r.width * devicePixelRatio) && c.height === Math.round(r.height * devicePixelRatio),
     };
   });
@@ -87,6 +86,16 @@ export function text(page: Page, selector: string) {
 
 export function isVisible(page: Page, selector: string) {
   return page.$eval(selector, (el) => (el as HTMLElement).offsetParent !== null);
+}
+
+/**
+ * The status mirror's showing lines by name: `sides` (left vs right), `turn`, `computer` (its last Move) and
+ * `scores` (left first). None show on the Start Screen.
+ */
+export function status(page: Page): Promise<Record<string, string>> {
+  return page.$$eval("#status [data-line]:not([hidden])", (els) =>
+    Object.fromEntries(els.map((el) => [(el as HTMLElement).dataset.line!, el.textContent!])),
+  );
 }
 
 /** Clicks the mirror button with the key, e.g. "start", "menu" or "ending:skip", where it lies over the canvas. */

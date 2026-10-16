@@ -10,7 +10,7 @@ export interface DragView {
   preview: Region[] | null;
 }
 
-const FILL: Record<Player, string> = { red: "#e5484d", blue: "#3e63dd" };
+export const FILL: Record<Player, string> = { red: "#e5484d", blue: "#3e63dd" };
 const UNCOLOURED = "#f1f1f1";
 const POINT_RADIUS = 6;
 

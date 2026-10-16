@@ -14,12 +14,14 @@ export function boardLayout({ x, y, width, height }: Rect) {
 
 export type Layout = ReturnType<typeof boardLayout>;
 
-/** The band along the canvas top kept clear of the Board for the Menu button. */
-export const TOP_BAND = 48;
+/** The band along the canvas top kept clear of the Board for the Player labels and the Menu button. */
+export const HEADER_HEIGHT = 72;
+/** The score bar along the canvas bottom. */
+export const BAR_HEIGHT = 32;
 
-/** Where the Board sits on a canvas of the given CSS size; the page and its browser tests share it. */
+/** Where the Board sits on a canvas of the given CSS size, between the header and the score bar; the page and its browser tests share it. */
 export function canvasLayout(width: number, height: number): Layout {
-  return boardLayout({ x: 0, y: TOP_BAND, width, height: height - TOP_BAND });
+  return boardLayout({ x: 0, y: HEADER_HEIGHT, width, height: height - HEADER_HEIGHT - BAR_HEIGHT });
 }
 
 export function toScreen(layout: Layout, p: Vec): Vec {

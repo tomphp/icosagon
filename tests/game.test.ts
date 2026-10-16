@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import {
-  canvasBox, canvasImage, drag, hasButton, hold, isPressed, isVisible, launch, pillLabels, press, resizeWindow, start, swipe, text,
+  canvasBox, canvasImage, drag, hasButton, hold, isPressed, isVisible, launch, pillLabels, press, resizeWindow, start, status, swipe, text,
 } from "./page.ts";
 
 let browser: Browser;
@@ -30,7 +30,7 @@ describe("the Start Screen on the page", () => {
     expect(await isPressed(page, "strategy:greedy")).toBe(true);
     expect(await isPressed(page, "ending:award")).toBe(true);
     expect(await isPressed(page, "ending:skip")).toBe(false);
-    expect(await isVisible(page, "#hud")).toBe(false);
+    expect(await status(page)).toEqual({});
     const howToPlay = await text(page, "#how-to-play");
     expect(howToPlay).toContain("Award: the Player who can't move takes the Region beside those two Points.");
     expect(howToPlay).toContain("Skip: they just miss the Move.");
@@ -50,7 +50,7 @@ describe("the Start Screen on the page", () => {
     await page.keyboard.press("Tab");
     await page.keyboard.press("Enter");
 
-    expect(await text(page, "#turn")).toBe("Red to move");
+    expect((await status(page)).turn).toBe("Red to move");
   });
 
   it("keeps the last Settings when the Menu returns to it", async () => {
@@ -59,13 +59,14 @@ describe("the Start Screen on the page", () => {
     await drag(page, 0, 10);
 
     await press(page, "menu");
+    expect(await status(page)).toEqual({});
     expect(await isPressed(page, "opponent:human")).toBe(true);
     expect(await isPressed(page, "ending:skip")).toBe(true);
     expect(await hasButton(page, "strategy:greedy")).toBe(false);
 
     await press(page, "start");
-    expect(await text(page, "#turn")).toBe("Red to move");
-    expect(await text(page, "#score-red")).toBe("Red 0.0%");
+    expect((await status(page)).turn).toBe("Red to move");
+    expect((await status(page)).scores).toMatch(/^Red 0\.0%, /);
   });
 
   it("fits a small phone's width with every button inside the window", async () => {
@@ -82,7 +83,7 @@ describe("the Start Screen on the page", () => {
     }
 
     await press(page, "start");
-    expect(await text(page, "#turn")).toMatch(/^Your move/);
+    expect((await status(page)).turn).toMatch(/^Your move/);
   });
 });
 
@@ -91,13 +92,11 @@ describe("playing on the page", () => {
     const page = await browser.newPage();
     await open(page);
 
-    expect(await text(page, "#score-red")).toBe("Red 0.0%");
-    expect(await text(page, "#score-blue")).toBe("Blue 0.0%");
+    expect((await status(page)).scores).toBe("Red 0.0%, Blue 0.0%");
 
     await drag(page, 0, 10);
 
-    expect(await text(page, "#score-red")).toBe("Red 50.0%");
-    expect(await text(page, "#score-blue")).toBe("Blue 50.0%");
+    expect((await status(page)).scores).toBe("Red 50.0%, Blue 50.0%");
   });
 });
 
@@ -105,23 +104,21 @@ describe("taking turns on the page", () => {
   it("shows whose turn it is and updates the Scores after every Move", async () => {
     const page = await browser.newPage();
     await open(page);
-    expect(await text(page, "#turn")).toBe("Red to move");
+    expect((await status(page)).turn).toBe("Red to move");
 
     await drag(page, 0, 10);
-    expect(await text(page, "#turn")).toBe("Blue to move");
+    expect((await status(page)).turn).toBe("Blue to move");
 
     // Blue's crossing diameter takes the bottom half; Red keeps only the top-right quarter.
     await drag(page, 5, 15);
-    expect(await text(page, "#turn")).toBe("Red to move");
-    expect(await text(page, "#score-red")).toBe("Red 25.0%");
-    expect(await text(page, "#score-blue")).toBe("Blue 75.0%");
+    expect((await status(page)).turn).toBe("Red to move");
+    expect((await status(page)).scores).toBe("Red 25.0%, Blue 75.0%");
 
     // Red cuts off the corner between Points 16 and 19 (1.9% of the Board); the rest of the
     // top-left quarter it passes through stays Blue.
     await drag(page, 16, 19);
-    expect(await text(page, "#turn")).toBe("Blue to move");
-    expect(await text(page, "#score-red")).toBe("Red 26.9%");
-    expect(await text(page, "#score-blue")).toBe("Blue 73.1%");
+    expect((await status(page)).turn).toBe("Blue to move");
+    expect((await status(page)).scores).toBe("Red 26.9%, Blue 73.1%");
   });
 });
 
@@ -139,19 +136,17 @@ describe("the end of a game on the page", () => {
 
     // Every Point is used, so no drag can start; the finished Board stays as it was.
     await drag(page, 0, 10);
-    expect(await text(page, "#score-red")).toBe("Red 43.0%");
-    expect(await text(page, "#score-blue")).toBe("Blue 57.0%");
+    expect((await status(page)).scores).toBe("Red 43.0%, Blue 57.0%");
 
     await press(page, "menu");
     expect(await hasButton(page, "start")).toBe(true);
     expect(await isVisible(page, "#result")).toBe(false);
     await press(page, "start");
-    expect(await text(page, "#turn")).toBe("Red to move");
-    expect(await text(page, "#score-red")).toBe("Red 0.0%");
-    expect(await text(page, "#score-blue")).toBe("Blue 0.0%");
+    expect((await status(page)).turn).toBe("Red to move");
+    expect((await status(page)).scores).toBe("Red 0.0%, Blue 0.0%");
 
     await drag(page, 0, 10);
-    expect(await text(page, "#score-red")).toBe("Red 50.0%");
+    expect((await status(page)).scores).toMatch(/^Red 50\.0%, /);
   });
 });
 
@@ -160,9 +155,8 @@ describe("invalid drags on the page", () => {
     const page = await browser.newPage();
     await open(page);
     const expectState = async (turn: string, red: string, blue: string) => {
-      expect(await text(page, "#turn")).toBe(turn);
-      expect(await text(page, "#score-red")).toBe(red);
-      expect(await text(page, "#score-blue")).toBe(blue);
+      expect((await status(page)).turn).toBe(turn);
+      expect((await status(page)).scores).toBe(`${red}, ${blue}`);
     };
 
     await drag(page, 0, "corner"); // released on empty space outside the Board
@@ -217,14 +211,13 @@ describe("the Ending on the page", () => {
 
     for (const [start, end] of stuckGame) await drag(page, start, end);
 
-    expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
+    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
     expect(await text(page, "#result")).toBe("Blue wins: Red 48.4%, Blue 51.6%");
-    expect(await text(page, "#score-red")).toBe("Red 48.4%");
-    expect(await text(page, "#score-blue")).toBe("Blue 51.6%");
+    expect((await status(page)).scores).toBe("Red 48.4%, Blue 51.6%");
 
     // The Board is locked: no Line can be drawn between the last two Points.
     await drag(page, 7, 8);
-    expect(await text(page, "#score-red")).toBe("Red 48.4%");
+    expect((await status(page)).scores).toMatch(/^Red 48\.4%, /);
   });
 
   it("under Skip, ends a stuck game with the Regions scored as they stand", async () => {
@@ -233,15 +226,14 @@ describe("the Ending on the page", () => {
 
     for (const [start, end] of stuckGame) await drag(page, start, end);
 
-    expect(await text(page, "#turn")).toBe("Game over — Blue has no legal Move");
+    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move");
     expect(await text(page, "#result")).toBe("Red wins: Red 59.2%, Blue 40.8%");
   });
 });
 
 describe("touch and resizing on the page", () => {
   const expectScores = async (page: Page, red: string, blue: string) => {
-    expect(await text(page, "#score-red")).toBe(red);
-    expect(await text(page, "#score-blue")).toBe(blue);
+    expect((await status(page)).scores).toBe(`${red}, ${blue}`);
   };
 
   it("plays Moves with finger drags in a small window, cancelling them as with a mouse", async () => {
@@ -255,13 +247,13 @@ describe("touch and resizing on the page", () => {
 
     await swipe(page, 0, "centre"); // lifted on empty space
     await swipe(page, 0, 1); // lifted on a neighbouring Point
-    expect(await text(page, "#turn")).toBe("Red to move");
+    expect((await status(page)).turn).toBe("Red to move");
     await expectScores(page, "Red 0.0%", "Blue 0.0%");
 
     await swipe(page, 0, 10);
     await swipe(page, 5, 15);
     await swipe(page, 16, 19);
-    expect(await text(page, "#turn")).toBe("Blue to move");
+    expect((await status(page)).turn).toBe("Blue to move");
     await expectScores(page, "Red 26.9%", "Blue 73.1%");
   });
 
@@ -286,6 +278,6 @@ describe("touch and resizing on the page", () => {
     expect(grown.fills).toBe(true);
 
     await drag(page, 3, 9);
-    expect(await text(page, "#turn")).toBe("Red to move");
+    expect((await status(page)).turn).toBe("Red to move");
   });
 });
