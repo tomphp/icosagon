@@ -1,42 +1,38 @@
-import type { Strategy } from "./computer.ts";
-import { isLegalMove, usedPoints, type Ending, type Game, type Outcome, type Player } from "./game.ts";
+import { isLegalMove, usedPoints, type Game, type Outcome, type Player } from "./game.ts";
 import { attachInput } from "./input.ts";
 import { canvasLayout } from "./layout.ts";
+import { syncMirror } from "./mirror.ts";
 import { neuralOptions } from "./model.ts";
 import { render } from "./render.ts";
-import { dragTo, releaseDrag, startGame, type AppState, type Opponent, type Settings } from "./screen.ts";
+import { DEFAULT_SETTINGS, dragTo, releaseDrag, startScreen, toMenu, type AppState } from "./screen.ts";
+import { HOW_TO_PLAY, NAMED_STRATEGIES, startScreenWidgets } from "./start-screen.ts";
+import { BACKGROUND, button, drawWidgets, measureWith, type Button } from "./widgets.ts";
 
 const canvas = document.querySelector("canvas")!;
 const ctx = canvas.getContext("2d")!;
+const measure = measureWith(ctx);
 const stage = document.querySelector<HTMLElement>("#stage")!;
+const mirror = document.querySelector<HTMLElement>("#mirror")!;
+const howToPlay = document.querySelector<HTMLElement>("#how-to-play")!;
+const hud = document.querySelector<HTMLElement>("#hud")!;
 const scoreRed = document.querySelector("#score-red")!;
 const scoreBlue = document.querySelector("#score-blue")!;
 const turn = document.querySelector("#turn")!;
 const result = document.querySelector<HTMLElement>("#result")!;
-const newGame = document.querySelector("#new-game")!;
 const you = document.querySelector<HTMLElement>("#you")!;
 const computerPlayed = document.querySelector<HTMLElement>("#computer-played")!;
-const endingSelect = document.querySelector<HTMLSelectElement>("#ending")!;
-const opponentSelect = document.querySelector<HTMLSelectElement>("#opponent")!;
-const strategySelect = document.querySelector<HTMLSelectElement>("#strategy")!;
-const selectors = [opponentSelect, strategySelect, endingSelect];
-/** Each Model in models/, bundled into the page and picked up live by the dev server, as a selector option. */
+/** Each Model in models/, bundled into the page and picked up live by the dev server, as a Strategy pill. */
 const neural = neuralOptions(import.meta.glob("../models/*.json", { eager: true, import: "default" }), console.warn);
-for (const { value, label } of neural) strategySelect.add(new Option(label, value));
-
-/** The Settings chosen in the selectors: their option values are the Opponents, Endings and named Strategies. */
-const selectedSettings = (): Settings => ({
-  opponent: opponentSelect.value as Opponent,
-  strategy:
-    neural.find(({ value }) => value === strategySelect.value)?.strategy ?? (strategySelect.value as Strategy),
-  ending: endingSelect.value as Ending,
-});
+const strategies = [...NAMED_STRATEGIES, ...neural];
+howToPlay.querySelector("ul")!.replaceChildren(
+  ...HOW_TO_PLAY.map((item) => Object.assign(document.createElement("li"), { textContent: item })),
+);
 
 /** The canvas's size in CSS pixels, the units pointer events and the layout use. */
 let size = { width: 0, height: 0 };
 const layout = () => canvasLayout(size.width, size.height);
 
-let state: AppState = startGame(selectedSettings(), Math.random);
+let state: AppState = startScreen(DEFAULT_SETTINGS);
 
 const NAME: Record<Player, string> = { red: "Red", blue: "Blue" };
 const RESULT: Record<Exclude<Outcome, "in-progress">, string> = {
@@ -60,17 +56,12 @@ function resultText(outcome: Exclude<Outcome, "in-progress">, human: Player | nu
   return outcome === `${human}-wins` ? "You win" : "Computer wins";
 }
 
-function update() {
-  const { game, computer, drag } = state;
+function updateHud() {
+  const { game, computer } = state;
   const red = `Red ${percent(game.scores.red)}`;
   const blue = `Blue ${percent(game.scores.blue)}`;
   scoreRed.textContent = red;
   scoreBlue.textContent = blue;
-  // The settings are fixed once the Human has drawn a Line; the Computer's opening Move as Red doesn't count.
-  const humanMoved = game.moves.length > (computer === "red" ? 1 : 0);
-  for (const select of selectors) select.disabled = humanMoved;
-  // Strategy only applies against the Computer.
-  strategySelect.disabled = humanMoved || !computer;
   const human: Player | null = computer && (computer === "red" ? "blue" : "red");
   you.hidden = human === null;
   if (human) you.textContent = `You are ${NAME[human]}`;
@@ -86,20 +77,38 @@ function update() {
     result.textContent = `${resultText(game.outcome, human)}: ${red}, ${blue}`;
     result.hidden = false;
   }
-  // The HUD's text can rewrap it and move the canvas, so refit now rather than a frame later.
-  fit();
-  render(ctx, layout(), game, drag);
 }
 
-const restart = () => {
-  state = startGame(selectedSettings(), Math.random);
-  update();
-};
-for (const select of selectors) select.addEventListener("change", restart);
-newGame.addEventListener("click", restart);
+function update() {
+  const onStart = state.screen === "start";
+  hud.hidden = onStart;
+  howToPlay.hidden = !onStart;
+  if (onStart) result.hidden = true;
+  else updateHud();
+  // The HUD's text can rewrap it and move the canvas, so refit now rather than a frame later.
+  fit();
+  let buttons: Button[];
+  if (onStart) {
+    const screen = startScreenWidgets(measure, size.width, size.height, state.settings, strategies, Math.random);
+    ctx.fillStyle = BACKGROUND;
+    ctx.fillRect(0, 0, size.width, size.height);
+    drawWidgets(ctx, screen.texts, screen.buttons);
+    buttons = screen.buttons;
+  } else {
+    const menu = button(measure, 0, 8, 14, { key: "menu", label: "Menu", selected: false, pill: false, press: toMenu });
+    menu.rect.x = size.width - menu.rect.width - 8;
+    render(ctx, layout(), state.game, state.drag);
+    drawWidgets(ctx, [], [menu]);
+    buttons = [menu];
+  }
+  syncMirror(mirror, buttons, (b) => {
+    state = b.press(state);
+    update();
+  });
+}
 
 attachInput(canvas, layout, {
-  canStartAt: (point) => !usedPoints(state.game).has(point),
+  canStartAt: (point) => state.screen === "playing" && !usedPoints(state.game).has(point),
   canEndAt: (start, point) => isLegalMove(state.game, { start, end: point }),
   dragMoved(start, pointer, snapped) {
     state = dragTo(state, start, pointer, snapped);

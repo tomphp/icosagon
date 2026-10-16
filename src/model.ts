@@ -67,7 +67,7 @@ export function loadModel(document: unknown): Model {
   return model;
 }
 
-/** A Strategy selector option for a Model. */
+/** A Strategy pill for a Model. */
 export interface NeuralOption {
   value: string;
   label: string;
@@ -75,7 +75,7 @@ export interface NeuralOption {
 }
 
 /**
- * The selector options for the Model documents, keyed by file path, sorted by file name with numbers
+ * The Strategy pills for the Model documents, keyed by file path, sorted by file name with numbers
  * in order. Incompatible Models are left out and reported through `warn`.
  */
 export function neuralOptions(files: Record<string, unknown>, warn: (message: string) => void): NeuralOption[] {

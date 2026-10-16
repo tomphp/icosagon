@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
-import { canvasBox, canvasImage, drag, hold, isDisabled, isVisible, launch, resizeWindow, selectedText, swipe, text } from "./page.ts";
+import {
+  canvasBox, canvasImage, drag, hasButton, hold, isPressed, isVisible, launch, pillLabels, press, resizeWindow, start, swipe, text,
+} from "./page.ts";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -8,14 +10,86 @@ beforeAll(async () => {
 });
 afterAll(() => browser?.close());
 
+/** Opens the page and starts a Human vs Human game, pressing the other pills first. */
+async function open(page: Page, ...pills: string[]) {
+  await page.goto(inject("baseUrl"));
+  await start(page, "opponent:human", ...pills);
+}
+
 const blueWinsGame: [number, number][] = [
   [0, 10], [5, 15], [2, 12], [7, 17], [1, 4], [3, 9], [6, 13], [8, 18], [11, 16], [14, 19],
 ];
 
+describe("the Start Screen on the page", () => {
+  it("opens with Computer, Greedy and Award chosen, and How to play explains both Endings", async () => {
+    const page = await browser.newPage();
+    await page.goto(inject("baseUrl"));
+
+    expect(await isPressed(page, "opponent:computer")).toBe(true);
+    expect(await isPressed(page, "opponent:human")).toBe(false);
+    expect(await isPressed(page, "strategy:greedy")).toBe(true);
+    expect(await isPressed(page, "ending:award")).toBe(true);
+    expect(await isPressed(page, "ending:skip")).toBe(false);
+    expect(await isVisible(page, "#hud")).toBe(false);
+    const howToPlay = await text(page, "#how-to-play");
+    expect(howToPlay).toContain("Award: the Player who can't move takes the Region beside those two Points.");
+    expect(howToPlay).toContain("Skip: they just miss the Move.");
+  });
+
+  it("takes pill and Start presses from the keyboard", async () => {
+    const page = await browser.newPage();
+    await page.goto(inject("baseUrl"));
+
+    await page.focus('#mirror [data-key="opponent:human"]');
+    await page.keyboard.press("Enter");
+    expect(await isPressed(page, "opponent:human")).toBe(true);
+    // Focus stays on Human as the Strategy row goes, so Tab moves on through Computer and Award to Skip.
+    for (let i = 0; i < 3; i++) await page.keyboard.press("Tab");
+    await page.keyboard.press("Space");
+    expect(await isPressed(page, "ending:skip")).toBe(true);
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Enter");
+
+    expect(await text(page, "#turn")).toBe("Red to move");
+  });
+
+  it("keeps the last Settings when the Menu returns to it", async () => {
+    const page = await browser.newPage();
+    await open(page, "ending:skip");
+    await drag(page, 0, 10);
+
+    await press(page, "menu");
+    expect(await isPressed(page, "opponent:human")).toBe(true);
+    expect(await isPressed(page, "ending:skip")).toBe(true);
+    expect(await hasButton(page, "strategy:greedy")).toBe(false);
+
+    await press(page, "start");
+    expect(await text(page, "#turn")).toBe("Red to move");
+    expect(await text(page, "#score-red")).toBe("Red 0.0%");
+  });
+
+  it("fits a small phone's width with every button inside the window", async () => {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 320, height: 640, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+    await page.goto(inject("baseUrl"));
+
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+    const boxes = await page.$$eval("#mirror button", (els) => els.map((el) => el.getBoundingClientRect().toJSON()));
+    for (const box of boxes) {
+      expect(box.left).toBeGreaterThanOrEqual(0);
+      expect(box.right).toBeLessThanOrEqual(320);
+      expect(box.bottom).toBeLessThanOrEqual(640);
+    }
+
+    await press(page, "start");
+    expect(await text(page, "#turn")).toMatch(/^Your move/);
+  });
+});
+
 describe("playing on the page", () => {
   it("one drag across a diameter Splits the Board 50% / 50%", async () => {
     const page = await browser.newPage();
-    await page.goto(inject("baseUrl"));
+    await open(page);
 
     expect(await text(page, "#score-red")).toBe("Red 0.0%");
     expect(await text(page, "#score-blue")).toBe("Blue 0.0%");
@@ -30,7 +104,7 @@ describe("playing on the page", () => {
 describe("taking turns on the page", () => {
   it("shows whose turn it is and updates the Scores after every Move", async () => {
     const page = await browser.newPage();
-    await page.goto(inject("baseUrl"));
+    await open(page);
     expect(await text(page, "#turn")).toBe("Red to move");
 
     await drag(page, 0, 10);
@@ -53,9 +127,9 @@ describe("taking turns on the page", () => {
 
 describe("the end of a game on the page", () => {
 
-  it("announces the result after the 10th Move, locks the Board, and New game resets it", async () => {
+  it("announces the result after the 10th Move, locks the Board, and the Menu leads back to a fresh game", async () => {
     const page = await browser.newPage();
-    await page.goto(inject("baseUrl"));
+    await open(page);
     expect(await isVisible(page, "#result")).toBe(false);
 
     for (const [start, end] of blueWinsGame) await drag(page, start, end);
@@ -68,8 +142,10 @@ describe("the end of a game on the page", () => {
     expect(await text(page, "#score-red")).toBe("Red 43.0%");
     expect(await text(page, "#score-blue")).toBe("Blue 57.0%");
 
-    await page.click("#new-game");
+    await press(page, "menu");
+    expect(await hasButton(page, "start")).toBe(true);
     expect(await isVisible(page, "#result")).toBe(false);
+    await press(page, "start");
     expect(await text(page, "#turn")).toBe("Red to move");
     expect(await text(page, "#score-red")).toBe("Red 0.0%");
     expect(await text(page, "#score-blue")).toBe("Blue 0.0%");
@@ -82,7 +158,7 @@ describe("the end of a game on the page", () => {
 describe("invalid drags on the page", () => {
   it("leave the Board, the Scores and the turn unchanged, so the same Player tries again", async () => {
     const page = await browser.newPage();
-    await page.goto(inject("baseUrl"));
+    await open(page);
     const expectState = async (turn: string, red: string, blue: string) => {
       expect(await text(page, "#turn")).toBe(turn);
       expect(await text(page, "#score-red")).toBe(red);
@@ -135,31 +211,9 @@ const stuckGame: [number, number][] = [
 ];
 
 describe("the Ending on the page", () => {
-  const ending = (page: Page) => selectedText(page, "#ending");
-  const isLocked = (page: Page) => isDisabled(page, "#ending");
-
-  it("is Award by default, can be chosen before the first Move, locks after it, and unlocks on New game", async () => {
-    const page = await browser.newPage();
-    await page.goto(inject("baseUrl"));
-    expect(await ending(page)).toBe("Award");
-    expect(await isLocked(page)).toBe(false);
-
-    await page.select("#ending", "skip");
-    expect(await ending(page)).toBe("Skip");
-
-    await drag(page, 0, 10);
-    expect(await isLocked(page)).toBe(true);
-    expect(await ending(page)).toBe("Skip");
-
-    await page.click("#new-game");
-    expect(await isLocked(page)).toBe(false);
-    expect(await ending(page)).toBe("Skip");
-    expect(await text(page, "#score-red")).toBe("Red 0.0%");
-  });
-
   it("under Award, ends a stuck game with Blue taking the Region by the unused Points", async () => {
     const page = await browser.newPage();
-    await page.goto(inject("baseUrl"));
+    await open(page);
 
     for (const [start, end] of stuckGame) await drag(page, start, end);
 
@@ -175,8 +229,7 @@ describe("the Ending on the page", () => {
 
   it("under Skip, ends a stuck game with the Regions scored as they stand", async () => {
     const page = await browser.newPage();
-    await page.goto(inject("baseUrl"));
-    await page.select("#ending", "skip");
+    await open(page, "ending:skip");
 
     for (const [start, end] of stuckGame) await drag(page, start, end);
 
@@ -194,7 +247,7 @@ describe("touch and resizing on the page", () => {
   it("plays Moves with finger drags in a small window, cancelling them as with a mouse", async () => {
     const page = await browser.newPage();
     await page.setViewport({ width: 360, height: 640, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
-    await page.goto(inject("baseUrl"));
+    await open(page);
 
     const box = await canvasBox(page);
     expect(box.fills).toBe(true);
@@ -214,7 +267,7 @@ describe("touch and resizing on the page", () => {
 
   it("resizes the canvas with the window and keeps snapping to Points accurate", async () => {
     const page = await browser.newPage();
-    await page.goto(inject("baseUrl"));
+    await open(page);
     const large = await canvasBox(page);
 
     await drag(page, 0, 10);

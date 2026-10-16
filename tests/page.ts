@@ -89,13 +89,30 @@ export function isVisible(page: Page, selector: string) {
   return page.$eval(selector, (el) => (el as HTMLElement).offsetParent !== null);
 }
 
-/** The text of a select's chosen option. */
-export function selectedText(page: Page, selector: string) {
-  return page.$eval(selector, (el) => (el as HTMLSelectElement).selectedOptions[0].text);
+/** Clicks the mirror button with the key, e.g. "start", "menu" or "ending:skip", where it lies over the canvas. */
+export function press(page: Page, key: string) {
+  return page.click(`#mirror [data-key="${key}"]`);
 }
 
-export function isDisabled(page: Page, selector: string) {
-  return page.$eval(selector, (el) => (el as HTMLSelectElement).disabled);
+/** Whether the Screen shows a button with the key. */
+export async function hasButton(page: Page, key: string) {
+  return (await page.$(`#mirror [data-key="${key}"]`)) !== null;
+}
+
+/** Whether the pill with the key is the chosen one. */
+export function isPressed(page: Page, key: string) {
+  return page.$eval(`#mirror [data-key="${key}"]`, (el) => el.getAttribute("aria-pressed") === "true");
+}
+
+/** The labels of the pills whose keys start with the prefix, e.g. "strategy:", in order. */
+export function pillLabels(page: Page, prefix: string) {
+  return page.$$eval(`#mirror [data-key^="${prefix}"]`, (els) => els.map((el) => el.textContent));
+}
+
+/** On the Start Screen, presses each pill with the given key, then Start. */
+export async function start(page: Page, ...pills: string[]) {
+  for (const key of pills) await press(page, key);
+  await press(page, "start");
 }
 
 /**

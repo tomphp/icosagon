@@ -14,9 +14,12 @@ export function boardLayout({ x, y, width, height }: Rect) {
 
 export type Layout = ReturnType<typeof boardLayout>;
 
+/** The band along the canvas top kept clear of the Board for the Menu button. */
+export const TOP_BAND = 48;
+
 /** Where the Board sits on a canvas of the given CSS size; the page and its browser tests share it. */
 export function canvasLayout(width: number, height: number): Layout {
-  return boardLayout({ x: 0, y: 0, width, height });
+  return boardLayout({ x: 0, y: TOP_BAND, width, height: height - TOP_BAND });
 }
 
 export function toScreen(layout: Layout, p: Vec): Vec {

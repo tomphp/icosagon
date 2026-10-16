@@ -22,6 +22,19 @@ export interface AppState {
   drag: DragView | null;
 }
 
+/** The Start Screen's Settings on first load: Human vs Computer, Greedy, Award. */
+export const DEFAULT_SETTINGS: Settings = { opponent: "computer", strategy: "greedy", ending: "award" };
+
+/** The Start Screen, showing the Settings; the game behind it is an empty Board that is never drawn. */
+export function startScreen(settings: Settings): AppState {
+  return { screen: "start", settings, game: createGame(settings.ending), computer: null, drag: null };
+}
+
+/** Changes some of the Settings on the Start Screen. */
+export function chooseSettings(state: AppState, changes: Partial<Settings>): AppState {
+  return { ...state, settings: { ...state.settings, ...changes } };
+}
+
 /** The Screen a game is shown on: Game over once its outcome is decided. */
 const screenOf = (game: Game): Screen => (game.outcome === "in-progress" ? "playing" : "over");
 
