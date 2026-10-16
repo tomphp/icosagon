@@ -1,6 +1,6 @@
 # Spec: Training that visibly improves
 
-Status: ready-for-human
+Status: done
 
 ## Problem Statement
 
@@ -69,6 +69,7 @@ Run each fix as an experiment against a fixed protocol, one ticket at a time. Ke
 - 07: No bigger Population wins, so the default stays 24. At equal games played, 36 (+0.008), 48 (+0.024) and 96 (−0.035) all fall below 06's +0.054, partly because they fit fewer Generations (14, 10 and 4 against 25). Even given 06's 25 Generations at 2.7× the games, 48 gets only +0.001, so diversity is not what limits Training. Best so far stays `results/06-scripted8-equal-games.json`.
 - 03 rerun: With the Settled input, fitting by backprop goes from −0.336 to −0.060, beating 08's evolution (−0.075) on about a quarter of the games (20,800 per seed), though not 06 (+0.054). It depends heavily on the seed: seed 1 (+0.129, about even against both Hoarders) is the best single Model so far, while seeds 2 and 3 lose to the Hoarders by about 0.4. **Decision: gradient training now helps, so ticket 09's gate passes.** A cheaper first step for 09 is to continue evolution from the fitted Models with `npm run train -- --from`. Best so far stays `results/06-scripted8-equal-games.json`.
 - 09: TD learning inside Training loses, so the option was removed (the code is in `git stash` "ticket 09 TD(λ) option"). Each Generation, each survivor took one TD(λ) step (λ 0.7) per game on its own positions, and its children inherited the learned weights. Only survivors learned, since the others are discarded; this gives the same result as every network learning. It adds no games and no measurable time per Generation. Rate 0.01 gets +0.015 and 0.05 gets −0.079, both below 06's +0.054; 0.2 diverges. At 0.05 the `vs` margins improve faster early (about −0.26 against the Hoarders at Generation 5, against 06's −0.37) but then stall, while 06 keeps improving to about −0.17 by Generation 25. ADR 0001 stands unchanged. Best so far stays `results/06-scripted8-equal-games.json`.
+- 10: **The final method is evolution at the current defaults** (Population 24, survivors 0.25, mutation 0.05, `--scripted-games 8`) with the Settled input. Nothing kept after ticket 06 changed a default, so the shipped Models need no retraining. `models/06-scripted8-equal-games-s3.json` is the evolved one (G +0.28 / H −0.06 / CH −0.02). `models/fit-settled-s1.json` is the best single Model so far (G +0.41 / H −0.00 / CH −0.00), but `fit` is unreliable across seeds, so it ships as a Model, not as the method. ADR 0001 now records why gradient training was tried and not adopted. **Lookahead is worth its own ticket:** since ticket 06, every variant has landed between −0.08 and +0.06. Every Model still loses to both Hoarders on average. Training stops improving after 20–30 Generations whatever the settings. All of this points to the 1-ply ceiling (cause 5), not to how Training runs.
 
 ## Out of scope / later
 
