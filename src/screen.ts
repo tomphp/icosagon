@@ -1,6 +1,8 @@
 import { chooseMove, type Random, type Strategy } from "./computer.ts";
 import { applyMove, createGame, previewMove, type Ending, type Game, type Move, type Player } from "./game.ts";
 import type { Vec } from "./geometry.ts";
+import type { Layout } from "./layout.ts";
+import { predictEnd } from "./predict.ts";
 import type { DragView } from "./render.ts";
 
 export type Screen = "start" | "playing" | "over";
@@ -63,10 +65,15 @@ export function toMenu(state: AppState): AppState {
   return { ...state, screen: "start", drag: null };
 }
 
-/** Follows a drag from the start Point; snapped to a legal end Point, it previews that Move's Regions. */
-export function dragTo(state: AppState, start: number, pointer: Vec, snapped: number | null): AppState {
-  const preview = snapped === null ? null : previewMove(state.game, { start, end: snapped });
-  return { ...state, drag: { start, pointer, snapped, preview } };
+/**
+ * Follows a drag from the start Point and previews the Regions of the Move to its snapped end Point or,
+ * unsnapped, to the end Point predicted from its direction.
+ */
+export function dragTo(state: AppState, layout: Layout, start: number, pointer: Vec, snapped: number | null): AppState {
+  const predicted = snapped === null ? predictEnd(state.game, layout, start, pointer) : null;
+  const end = snapped ?? predicted;
+  const preview = end === null ? null : previewMove(state.game, { start, end });
+  return { ...state, drag: { start, pointer, snapped, predicted, preview } };
 }
 
 /** Ends the drag: released on a legal end Point it makes that Move, otherwise nothing changes. */

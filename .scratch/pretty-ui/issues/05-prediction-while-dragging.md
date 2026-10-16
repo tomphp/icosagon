@@ -4,9 +4,9 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A pure prediction function returns the predicted end Point or none, given the Game, the start Point and the pointer
-- [ ] Unit tests cover the 20px threshold, aiming by angle, skipping used and adjacent Points, and having no legal end Point
-- [ ] Unsnapped drags show the pale tint, the faint extension and the ring; snapped drags show full colours as today
-- [ ] Releasing an unsnapped drag makes no Move
+- [x] A pure prediction function returns the predicted end Point or none, given the Game, the start Point and the pointer
+- [x] Unit tests cover the 20px threshold, aiming by angle, skipping used and adjacent Points, and having no legal end Point
+- [x] Unsnapped drags show the pale tint, the faint extension and the ring; snapped drags show full colours as today
+- [x] Releasing an unsnapped drag makes no Move

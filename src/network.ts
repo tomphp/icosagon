@@ -1,4 +1,4 @@
-import { POINT_COUNT, side, type Vec } from "./geometry.ts";
+import { contains, POINT_COUNT, type Vec } from "./geometry.ts";
 import { opponentOf, settledRegions, usedPoints, type Game, type Player } from "./game.ts";
 
 /**
@@ -42,18 +42,6 @@ export const INPUT = {
 } as const;
 
 export const INPUT_SIZE = INPUT.settled + SAMPLE_SPOTS.length;
-
-/** Whether p is inside or on the edge of a convex polygon, whichever way round it winds. */
-function contains(polygon: Vec[], p: Vec): boolean {
-  let sign = 0;
-  for (let i = 0; i < polygon.length; i++) {
-    const s = side(polygon[i], polygon[(i + 1) % polygon.length], p);
-    if (Math.abs(s) < 1e-12) continue;
-    if (sign === 0) sign = Math.sign(s);
-    else if (Math.sign(s) !== sign) return false;
-  }
-  return true;
-}
 
 /** The network's inputs for the position, from the point of view of the Player. */
 export function inputsFor(game: Game, player: Player): number[] {

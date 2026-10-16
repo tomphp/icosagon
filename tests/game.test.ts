@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import {
-  canvasBox, canvasImage, drag, hasButton, hold, isPressed, launch, pillLabels, press, resizeWindow, start, status, swipe, text,
+  canvasBox, canvasImage, colourNear, drag, hasButton, hold, isPressed, launch, moveTo, pillLabels, press, resizeWindow, start, status,
+  swipe, text,
 } from "./page.ts";
 
 let browser: Browser;
@@ -212,6 +213,33 @@ describe("invalid drags on the page", () => {
 
     await drag(page, 16, 19);
     await expectState("Blue to move", "Red 26.9%", "Blue 73.1%");
+  });
+});
+
+describe("predicting a drag on the page", () => {
+  const RED = "#e5484d", BLUE = "#3e63dd", PALE_RED = "#f19a9d", PALE_BLUE = "#94a9ec", UNCOLOURED = "#f1f1f1";
+  const coloursNear = (page: Page, points: number[]) => Promise.all(points.map((p) => colourNear(page, p)));
+
+  it("tints the Regions an unsnapped drag would recolour, shows full colours once snapped, and moves only when snapped", async () => {
+    const page = await browser.newPage();
+    await open(page);
+
+    // Aimed from Point 0 through the centre, the drag predicts Point 10: Red takes the right half.
+    await hold(page, 0, "centre");
+    expect(await coloursNear(page, [5, 15])).toEqual([PALE_RED, PALE_BLUE]);
+    await moveTo(page, 10);
+    expect(await coloursNear(page, [5, 15])).toEqual([RED, BLUE]);
+    await moveTo(page, "centre");
+    await page.mouse.up();
+    expect(await coloursNear(page, [5, 15])).toEqual([UNCOLOURED, UNCOLOURED]);
+    expect((await status(page)).turn).toBe("Red to move");
+
+    // Blue aims 5→15 and would take the bottom half: only the bottom-right quarter changes colour.
+    await drag(page, 0, 10);
+    await hold(page, 5, "centre");
+    expect(await coloursNear(page, [3, 7, 13, 17])).toEqual([RED, PALE_BLUE, BLUE, BLUE]);
+    await page.mouse.up();
+    expect((await status(page)).turn).toBe("Blue to move");
   });
 });
 

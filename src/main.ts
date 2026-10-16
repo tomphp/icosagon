@@ -57,7 +57,7 @@ attachInput(canvas, layout, {
   canStartAt: (point) => state.screen === "playing" && !usedPoints(state.game).has(point),
   canEndAt: (start, point) => isLegalMove(state.game, { start, end: point }),
   dragMoved(start, pointer, snapped) {
-    state = dragTo(state, start, pointer, snapped);
+    state = dragTo(state, layout(), start, pointer, snapped);
     update();
   },
   dragReleased(start, end) {

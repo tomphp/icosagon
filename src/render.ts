@@ -1,4 +1,4 @@
-import { POINT_COUNT, type Vec } from "./geometry.ts";
+import { contains, POINT_COUNT, type Vec } from "./geometry.ts";
 import { usedPoints, type Game, type Player, type Region } from "./game.ts";
 import { pointOnScreen, toScreen, type Layout } from "./layout.ts";
 
@@ -6,11 +6,15 @@ export interface DragView {
   start: number;
   pointer: Vec;
   snapped: number | null;
-  /** The Regions releasing on the snapped Point would produce, or null when not snapped. */
+  /** The end Point guessed from the drag's direction while it isn't snapped, or null. */
+  predicted: number | null;
+  /** The Regions the Move to the snapped, or else predicted, end Point would produce, or null when neither. */
   preview: Region[] | null;
 }
 
 export const FILL: Record<Player, string> = { red: "#e5484d", blue: "#3e63dd" };
+/** FILL mixed 45% toward white, for the Regions a predicted Move would recolour. */
+const PALE: Record<Player, string> = { red: "#f19a9d", blue: "#94a9ec" };
 const UNCOLOURED = "#f1f1f1";
 const POINT_RADIUS = 6;
 
@@ -21,16 +25,12 @@ export function render(ctx: CanvasRenderingContext2D, layout: Layout, game: Game
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.restore();
 
-  for (const region of drag?.preview ?? game.regions) {
-    ctx.beginPath();
-    region.polygon.forEach((p, i) => {
-      const s = toScreen(layout, p);
-      if (i === 0) ctx.moveTo(s.x, s.y);
-      else ctx.lineTo(s.x, s.y);
-    });
-    ctx.closePath();
-    ctx.fillStyle = region.colour ? FILL[region.colour] : UNCOLOURED;
-    ctx.fill();
+  const predicting = drag?.predicted != null;
+  for (const region of (!predicting && drag?.preview) || game.regions) {
+    fillRegion(ctx, layout, region, region.colour ? FILL[region.colour] : UNCOLOURED);
+  }
+  if (predicting) {
+    for (const piece of recoloured(game.regions, drag!.preview!)) fillRegion(ctx, layout, piece, PALE[piece.colour!]);
   }
 
   ctx.lineWidth = 2;
@@ -50,6 +50,11 @@ export function render(ctx: CanvasRenderingContext2D, layout: Layout, game: Game
     const end = drag.snapped === null ? drag.pointer : pointOnScreen(layout, drag.snapped);
     ctx.setLineDash([6, 4]);
     line(ctx, pointOnScreen(layout, drag.start), end);
+    if (drag.predicted !== null) {
+      ctx.globalAlpha = 0.3;
+      line(ctx, drag.pointer, pointOnScreen(layout, drag.predicted));
+      ctx.globalAlpha = 1;
+    }
     ctx.setLineDash([]);
   }
 
@@ -61,6 +66,38 @@ export function render(ctx: CanvasRenderingContext2D, layout: Layout, game: Game
     ctx.fillStyle = used.has(i) ? "#888" : "#222";
     ctx.fill();
   }
+
+  if (drag?.predicted != null) {
+    const s = pointOnScreen(layout, drag.predicted);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, POINT_RADIUS + 5, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
+}
+
+function fillRegion(ctx: CanvasRenderingContext2D, layout: Layout, region: Region, colour: string) {
+  ctx.beginPath();
+  region.polygon.forEach((p, i) => {
+    const s = toScreen(layout, p);
+    if (i === 0) ctx.moveTo(s.x, s.y);
+    else ctx.lineTo(s.x, s.y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = colour;
+  ctx.fill();
+}
+
+/** The new pieces of a Move preview whose colour differs from the Region they were cut from. */
+function recoloured(regions: Region[], preview: Region[]): Region[] {
+  const before = new Set(regions);
+  return preview.filter((piece) => {
+    if (before.has(piece)) return false;
+    // A piece's vertex average lies inside it, so inside the one convex Region it was cut from.
+    const n = piece.polygon.length;
+    const mid = piece.polygon.reduce((m, p) => ({ x: m.x + p.x / n, y: m.y + p.y / n }), { x: 0, y: 0 });
+    const parent = regions.find((r) => contains(r.polygon, mid));
+    return parent?.colour !== piece.colour;
+  });
 }
 
 function line(ctx: CanvasRenderingContext2D, a: Vec, b: Vec) {

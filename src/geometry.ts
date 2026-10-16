@@ -66,3 +66,15 @@ export function splitPolygon(polygon: Vec[], a: Vec, b: Vec): { left: Vec[]; rig
   if (polygonArea(left) < MIN_AREA || polygonArea(right) < MIN_AREA) return null;
   return { left, right };
 }
+
+/** Whether p is inside or on the edge of a convex polygon, whichever way round it winds. */
+export function contains(polygon: Vec[], p: Vec): boolean {
+  let sign = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const s = side(polygon[i], polygon[(i + 1) % polygon.length], p);
+    if (Math.abs(s) < 1e-12) continue;
+    if (sign === 0) sign = Math.sign(s);
+    else if (Math.sign(s) !== sign) return false;
+  }
+  return true;
+}

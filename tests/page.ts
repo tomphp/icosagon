@@ -27,10 +27,13 @@ export async function hold(page: Page, from: Spot, ...path: Spot[]) {
   const start = await onScreen(page, from);
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  for (const spot of path) {
-    const p = await onScreen(page, spot);
-    await page.mouse.move(p.x, p.y, { steps: 10 });
-  }
+  for (const spot of path) await moveTo(page, spot);
+}
+
+/** Moves the mouse to the Spot, keeping any button held. */
+export async function moveTo(page: Page, spot: Spot) {
+  const p = await onScreen(page, spot);
+  await page.mouse.move(p.x, p.y, { steps: 10 });
 }
 
 /** A real pointer drag: press on the first Spot, move through the rest, release on the last. */
@@ -129,4 +132,21 @@ export function stubRandom(page: Page, values: number[]) {
     let i = 0;
     Math.random = () => values[Math.min(i++, values.length - 1)];
   }, values);
+}
+
+/** The canvas's colour, as "#rrggbb", 80% of the way from the Board's centre to Point p. */
+export async function colourNear(page: Page, p: number) {
+  const box = await page.$eval("canvas", (c) => c.getBoundingClientRect().toJSON());
+  const layout = canvasLayout(box.width, box.height);
+  const point = pointOnCanvas(layout, p);
+  const spot = { x: layout.centre.x + 0.8 * (point.x - layout.centre.x), y: layout.centre.y + 0.8 * (point.y - layout.centre.y) };
+  return page.$eval(
+    "canvas",
+    (c, { x, y }) => {
+      const scale = c.width / c.getBoundingClientRect().width;
+      const [red, green, blue] = c.getContext("2d")!.getImageData(Math.round(x * scale), Math.round(y * scale), 1, 1).data;
+      return "#" + [red, green, blue].map((v) => v.toString(16).padStart(2, "0")).join("");
+    },
+    spot,
+  );
 }
