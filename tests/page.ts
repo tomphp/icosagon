@@ -1,5 +1,5 @@
 import puppeteer, { type Browser, type Page } from "puppeteer-core";
-import { boardLayout, pointOnScreen as pointOnCanvas } from "../src/layout.ts";
+import { canvasLayout, pointOnScreen as pointOnCanvas } from "../src/layout.ts";
 
 export async function launch(): Promise<Browser> {
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -17,7 +17,7 @@ async function onScreen(page: Page, spot: Spot) {
     const r = c.getBoundingClientRect();
     return { x: r.x, y: r.y, width: r.width, height: r.height };
   });
-  const layout = boardLayout(box.width, box.height);
+  const layout = canvasLayout(box.width, box.height);
   const p = spot === "centre" ? layout.centre : spot === "corner" ? { x: 1, y: 1 } : pointOnCanvas(layout, spot);
   return { x: box.x + p.x, y: box.y + p.y };
 }
@@ -60,14 +60,18 @@ export async function resizeWindow(page: Page, width: number, height: number) {
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
 }
 
-/** The canvas's on-screen size, and whether all of it is inside the window. */
+/**
+ * The canvas's on-screen size; whether it fills the window below the HUD, edge to edge and down to the
+ * bottom; and whether its backing store matches the device's pixel ratio.
+ */
 export function canvasBox(page: Page) {
   return page.$eval("canvas", (c) => {
     const r = c.getBoundingClientRect();
     return {
       width: r.width,
       height: r.height,
-      fits: r.left >= 0 && r.top >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight,
+      fills: r.left === 0 && r.top > 0 && r.right === window.innerWidth && Math.abs(r.bottom - window.innerHeight) < 1,
+      sharp: c.width === Math.round(r.width * devicePixelRatio) && c.height === Math.round(r.height * devicePixelRatio),
     };
   });
 }

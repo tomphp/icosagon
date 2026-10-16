@@ -286,7 +286,10 @@ describe("a Neural Model on the page", () => {
   it("is offered after the named Strategies, with Greedy still the default", async () => {
     const page = await openPage([HUMAN_RED]);
 
-    expect(await optionTexts(page, "#strategy")).toEqual(["Random", "Greedy", "Hoarder", "Clever Hoarder", FIXTURE.label]);
+    const options = await optionTexts(page, "#strategy");
+    expect(options.slice(0, 4)).toEqual(["Random", "Greedy", "Hoarder", "Clever Hoarder"]);
+    // models/ holds other Models too; only the fixture is sure to be there.
+    expect(options.slice(4)).toContain(FIXTURE.label);
     expect(await selectedText(page, "#strategy")).toBe("Greedy");
   });
 

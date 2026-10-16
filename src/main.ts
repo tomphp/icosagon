@@ -1,9 +1,10 @@
-import { chooseMove, type Strategy } from "./computer.ts";
-import { applyMove, createGame, isLegalMove, previewMove, usedPoints, type Ending, type Game, type Outcome, type Player } from "./game.ts";
+import type { Strategy } from "./computer.ts";
+import { isLegalMove, usedPoints, type Ending, type Game, type Outcome, type Player } from "./game.ts";
 import { attachInput } from "./input.ts";
-import { boardLayout } from "./layout.ts";
+import { canvasLayout } from "./layout.ts";
 import { neuralOptions } from "./model.ts";
-import { render, type DragView } from "./render.ts";
+import { render } from "./render.ts";
+import { dragTo, releaseDrag, startGame, type AppState, type Opponent, type Settings } from "./screen.ts";
 
 const canvas = document.querySelector("canvas")!;
 const ctx = canvas.getContext("2d")!;
@@ -19,38 +20,23 @@ const endingSelect = document.querySelector<HTMLSelectElement>("#ending")!;
 const opponentSelect = document.querySelector<HTMLSelectElement>("#opponent")!;
 const strategySelect = document.querySelector<HTMLSelectElement>("#strategy")!;
 const selectors = [opponentSelect, strategySelect, endingSelect];
-/** The Ending chosen in the selector; its option values are the Ending names. */
-const selectedEnding = () => endingSelect.value as Ending;
 /** Each Model in models/, bundled into the page and picked up live by the dev server, as a selector option. */
 const neural = neuralOptions(import.meta.glob("../models/*.json", { eager: true, import: "default" }), console.warn);
 for (const { value, label } of neural) strategySelect.add(new Option(label, value));
-/** The Strategy chosen in the selector: the named Strategies' options have their names as values. */
-const selectedStrategy = (): Strategy =>
-  neural.find(({ value }) => value === strategySelect.value)?.strategy ?? (strategySelect.value as Strategy);
 
-/** The canvas's side in CSS pixels, the units pointer events and the layout use. */
-let size = 0;
-const layout = () => boardLayout(size, size);
+/** The Settings chosen in the selectors: their option values are the Opponents, Endings and named Strategies. */
+const selectedSettings = (): Settings => ({
+  opponent: opponentSelect.value as Opponent,
+  strategy:
+    neural.find(({ value }) => value === strategySelect.value)?.strategy ?? (strategySelect.value as Strategy),
+  ending: endingSelect.value as Ending,
+});
 
-let game: Game;
-/** The Player the Computer controls, or null in Human vs Human. */
-let computer: Player | null;
-let drag: DragView | null = null;
+/** The canvas's size in CSS pixels, the units pointer events and the layout use. */
+let size = { width: 0, height: 0 };
+const layout = () => canvasLayout(size.width, size.height);
 
-/** Plays the Computer's Move if it is the Mover. */
-function playComputer() {
-  if (game.outcome === "in-progress" && game.mover === computer) {
-    game = applyMove(game, chooseMove(game, selectedStrategy(), Math.random));
-  }
-}
-
-/** Starts a game with the selected settings; against the Computer, a coin flip gives it Red or Blue. */
-function startGame() {
-  game = createGame(selectedEnding());
-  computer = opponentSelect.value === "computer" ? (Math.random() < 0.5 ? "blue" : "red") : null;
-  drag = null;
-  playComputer();
-}
+let state: AppState = startGame(selectedSettings(), Math.random);
 
 const NAME: Record<Player, string> = { red: "Red", blue: "Blue" };
 const RESULT: Record<Exclude<Outcome, "in-progress">, string> = {
@@ -75,7 +61,7 @@ function resultText(outcome: Exclude<Outcome, "in-progress">, human: Player | nu
 }
 
 function update() {
-  render(ctx, layout(), game, drag);
+  const { game, computer, drag } = state;
   const red = `Red ${percent(game.scores.red)}`;
   const blue = `Blue ${percent(game.scores.blue)}`;
   scoreRed.textContent = red;
@@ -100,48 +86,44 @@ function update() {
     result.textContent = `${resultText(game.outcome, human)}: ${red}, ${blue}`;
     result.hidden = false;
   }
+  // The HUD's text can rewrap it and move the canvas, so refit now rather than a frame later.
+  fit();
+  render(ctx, layout(), game, drag);
 }
 
-for (const select of selectors) {
-  select.addEventListener("change", () => {
-    startGame();
-    update();
-  });
-}
-
-newGame.addEventListener("click", () => {
-  startGame();
+const restart = () => {
+  state = startGame(selectedSettings(), Math.random);
   update();
-});
+};
+for (const select of selectors) select.addEventListener("change", restart);
+newGame.addEventListener("click", restart);
 
 attachInput(canvas, layout, {
-  canStartAt: (point) => !usedPoints(game).has(point),
-  canEndAt: (start, point) => isLegalMove(game, { start, end: point }),
+  canStartAt: (point) => !usedPoints(state.game).has(point),
+  canEndAt: (start, point) => isLegalMove(state.game, { start, end: point }),
   dragMoved(start, pointer, snapped) {
-    const preview = snapped === null ? null : previewMove(game, { start, end: snapped });
-    drag = { start, pointer, snapped, preview };
+    state = dragTo(state, start, pointer, snapped);
     update();
   },
   dragReleased(start, end) {
-    drag = null;
-    if (end !== null) {
-      game = applyMove(game, { start, end });
-      playComputer();
-    }
+    state = releaseDrag(state, start, end, Math.random);
     update();
   },
 });
 
-/** Fits the canvas to the largest square in the space under the HUD, drawn sharply at the device's pixel ratio. */
-function resize() {
-  size = Math.floor(Math.min(stage.clientWidth, stage.clientHeight));
+/** Fits the canvas to the space under the HUD, drawn sharply at the device's pixel ratio. */
+function fit() {
   const scale = window.devicePixelRatio;
-  canvas.style.width = canvas.style.height = `${size}px`;
-  canvas.width = canvas.height = Math.round(size * scale);
+  const width = stage.clientWidth;
+  const height = stage.clientHeight;
+  if (width === size.width && height === size.height && canvas.width === Math.round(width * scale)) return;
+  size = { width, height };
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  update();
 }
 
-startGame();
-new ResizeObserver(resize).observe(stage);
-resize();
+new ResizeObserver(update).observe(stage);
+update();

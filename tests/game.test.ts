@@ -197,8 +197,8 @@ describe("touch and resizing on the page", () => {
     await page.goto(inject("baseUrl"));
 
     const box = await canvasBox(page);
-    expect(box.fits).toBe(true);
-    expect(box.width).toBe(box.height);
+    expect(box.fills).toBe(true);
+    expect(box.sharp).toBe(true);
 
     await swipe(page, 0, "centre"); // lifted on empty space
     await swipe(page, 0, 1); // lifted on a neighbouring Point
@@ -221,8 +221,7 @@ describe("touch and resizing on the page", () => {
     await resizeWindow(page, 420, 520);
     const small = await canvasBox(page);
     expect(small.width).toBeLessThan(large.width);
-    expect(small.width).toBe(small.height);
-    expect(small.fits).toBe(true);
+    expect(small.fills).toBe(true);
 
     await drag(page, 5, 15);
     await drag(page, 16, 19);
@@ -231,7 +230,7 @@ describe("touch and resizing on the page", () => {
     await resizeWindow(page, 1200, 1000);
     const grown = await canvasBox(page);
     expect(grown.width).toBeGreaterThan(large.width);
-    expect(grown.fits).toBe(true);
+    expect(grown.fills).toBe(true);
 
     await drag(page, 3, 9);
     expect(await text(page, "#turn")).toBe("Red to move");
