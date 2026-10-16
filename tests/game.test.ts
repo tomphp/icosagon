@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import {
-  canvasBox, canvasImage, drag, hasButton, hold, isPressed, isVisible, launch, pillLabels, press, resizeWindow, start, status, swipe, text,
+  canvasBox, canvasImage, drag, hasButton, hold, isPressed, launch, pillLabels, press, resizeWindow, start, status, swipe, text,
 } from "./page.ts";
 
 let browser: Browser;
@@ -124,29 +124,45 @@ describe("taking turns on the page", () => {
 
 describe("the end of a game on the page", () => {
 
-  it("announces the result after the 10th Move, locks the Board, and the Menu leads back to a fresh game", async () => {
+  it("announces the result after the 10th Move, locks the Board, and Back leads to the Start Screen and a fresh game", async () => {
     const page = await browser.newPage();
     await open(page);
-    expect(await isVisible(page, "#result")).toBe(false);
+    expect((await status(page)).result).toBeUndefined();
 
     for (const [start, end] of blueWinsGame) await drag(page, start, end);
 
-    expect(await isVisible(page, "#result")).toBe(true);
-    expect(await text(page, "#result")).toBe("Blue wins: Red 43.0%, Blue 57.0%");
+    expect(await status(page)).toEqual({
+      sides: "Human (Red) vs Human (Blue)",
+      result: "Blue wins",
+      scores: "Red 43.0%, Blue 57.0%",
+    });
+    expect(await hasButton(page, "menu")).toBe(false);
+    expect(await page.$("#result")).toBeNull();
 
     // Every Point is used, so no drag can start; the finished Board stays as it was.
     await drag(page, 0, 10);
     expect((await status(page)).scores).toBe("Red 43.0%, Blue 57.0%");
 
-    await press(page, "menu");
-    expect(await hasButton(page, "start")).toBe(true);
-    expect(await isVisible(page, "#result")).toBe(false);
+    await press(page, "back");
+    expect(await status(page)).toEqual({});
+    expect(await isPressed(page, "opponent:human")).toBe(true);
     await press(page, "start");
     expect((await status(page)).turn).toBe("Red to move");
     expect((await status(page)).scores).toBe("Red 0.0%, Blue 0.0%");
 
     await drag(page, 0, 10);
     expect((await status(page)).scores).toMatch(/^Red 50\.0%, /);
+  });
+
+  it("takes Back to Start Screen from the keyboard, keeping the last Settings", async () => {
+    const page = await browser.newPage();
+    await open(page, "ending:skip");
+    for (const [start, end] of blueWinsGame) await drag(page, start, end);
+
+    await page.focus('#mirror [data-key="back"]');
+    await page.keyboard.press("Enter");
+    expect(await isPressed(page, "opponent:human")).toBe(true);
+    expect(await isPressed(page, "ending:skip")).toBe(true);
   });
 });
 
@@ -211,9 +227,12 @@ describe("the Ending on the page", () => {
 
     for (const [start, end] of stuckGame) await drag(page, start, end);
 
-    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
-    expect(await text(page, "#result")).toBe("Blue wins: Red 48.4%, Blue 51.6%");
-    expect((await status(page)).scores).toBe("Red 48.4%, Blue 51.6%");
+    expect(await status(page)).toEqual({
+      sides: "Human (Red) vs Human (Blue)",
+      result: "Blue wins",
+      reason: "Blue has no legal Move and takes the Region by Points 7 and 8",
+      scores: "Red 48.4%, Blue 51.6%",
+    });
 
     // The Board is locked: no Line can be drawn between the last two Points.
     await drag(page, 7, 8);
@@ -226,8 +245,9 @@ describe("the Ending on the page", () => {
 
     for (const [start, end] of stuckGame) await drag(page, start, end);
 
-    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move");
-    expect(await text(page, "#result")).toBe("Red wins: Red 59.2%, Blue 40.8%");
+    expect((await status(page)).result).toBe("Red wins");
+    expect((await status(page)).reason).toBe("Blue has no legal Move");
+    expect((await status(page)).scores).toBe("Red 59.2%, Blue 40.8%");
   });
 });
 

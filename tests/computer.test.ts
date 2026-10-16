@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import { chooseMove } from "../src/computer.ts";
 import { applyMove, createGame, type Ending, type Game, type Move, type Player } from "../src/game.ts";
-import { drag, hasButton, isPressed, launch, pillLabels, press, start, status, stubRandom, text } from "./page.ts";
+import { drag, hasButton, isPressed, launch, pillLabels, press, start, status, stubRandom } from "./page.ts";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -39,8 +39,6 @@ function script(ending: Ending, computer: Player, moves: [number, number][]) {
 }
 
 const percent = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
-
-const scoreText = (game: Game) => `Red ${percent(game.scores.red)}, Blue ${percent(game.scores.blue)}`;
 
 /** Checks the status mirror's Scores, the Human's first as they are on the left. */
 async function expectScores(page: Page, game: Game, human: Player = "red") {
@@ -169,10 +167,11 @@ describe("a stuck game against the Computer on the page", () => {
 
     for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 0)) await drag(page, start, end);
 
-    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
+    expect((await status(page)).result).toBe("Blue wins");
+    expect((await status(page)).subtitle).toBe("Computer wins");
+    expect((await status(page)).reason).toBe("Blue has no legal Move and takes the Region by Points 7 and 8");
     // The Human made the last Move, so the Computer's earlier Move is no longer shown.
     expect((await status(page)).computer).toBeUndefined();
-    expect(await text(page, "#result")).toBe(`Computer wins: ${scoreText(game)}`);
     await expectScores(page, game);
   });
 
@@ -182,8 +181,9 @@ describe("a stuck game against the Computer on the page", () => {
 
     for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) await drag(page, start, end);
 
-    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move and takes the Region by Points 7 and 8");
-    expect(await text(page, "#result")).toBe(`You win: ${scoreText(game)}`);
+    expect((await status(page)).result).toBe("Blue wins");
+    expect((await status(page)).subtitle).toBe("You win!");
+    expect((await status(page)).reason).toBe("Blue has no legal Move and takes the Region by Points 7 and 8");
     await expectScores(page, game, "blue");
   });
 
@@ -194,9 +194,10 @@ describe("a stuck game against the Computer on the page", () => {
 
     for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) await drag(page, start, end);
 
-    expect((await status(page)).turn).toBe("Game over — Blue has no legal Move");
+    expect((await status(page)).result).toBe("Red wins");
+    expect((await status(page)).subtitle).toBe("Computer wins");
+    expect((await status(page)).reason).toBe("Blue has no legal Move");
     expect((await status(page)).computer).toBe("Computer played 6→16");
-    expect(await text(page, "#result")).toBe(`Computer wins: ${scoreText(game)}`);
     await expectScores(page, game, "blue");
 
     // The game is over, so no Line can be drawn between the last two Points.
@@ -232,8 +233,11 @@ async function playToGameOver({ value, label }: { value: string; label: string }
     await expectScores(page, game);
   }
 
-  expect(await text(page, "#result")).toMatch(/^(You win|Computer wins|Draw): /);
-  expect(await text(page, "#result")).toContain(scoreText(game));
+  const { result, subtitle } = await status(page);
+  expect(result).toMatch(/^(Red wins|Blue wins|Draw)$/);
+  // The Human is Red, so the subtitle follows the headline; a Draw has none.
+  expect(subtitle).toBe(({ "Red wins": "You win!", "Blue wins": "Computer wins" } as Record<string, string>)[result]);
+  await expectScores(page, game);
 }
 
 describe("the Hoarder on the page", () => {

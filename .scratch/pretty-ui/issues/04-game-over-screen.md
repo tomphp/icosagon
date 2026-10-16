@@ -4,9 +4,9 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The grey overlay is drawn over the final Board; no further drags are accepted
-- [ ] The headline, subtitle and stuck reason are correct for 10-Move games, Award and Skip
-- [ ] Back to Start Screen (canvas and DOM mirror) returns to the Start Screen with the last Settings
-- [ ] The status mirror announces the result; `#result` is gone and the browser tests read the mirror
+- [x] The grey overlay is drawn over the final Board; no further drags are accepted
+- [x] The headline, subtitle and stuck reason are correct for 10-Move games, Award and Skip
+- [x] Back to Start Screen (canvas and DOM mirror) returns to the Start Screen with the last Settings
+- [x] The status mirror announces the result; `#result` is gone and the browser tests read the mirror

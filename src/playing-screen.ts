@@ -1,10 +1,10 @@
-import type { Game, Move, Player } from "./game.ts";
+import type { Move, Player } from "./game.ts";
 import { BAR_HEIGHT } from "./layout.ts";
 import { FILL } from "./render.ts";
 import { toMenu, type AppState } from "./screen.ts";
 import { button, drawScoreBar, drawWidgets, MUTED, type Measure, type Text } from "./widgets.ts";
 
-const NAME: Record<Player, string> = { red: "Red", blue: "Blue" };
+export const NAME: Record<Player, string> = { red: "Red", blue: "Blue" };
 
 export const percent = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
 
@@ -21,14 +21,6 @@ function computerMove({ game, computer }: AppState): Move | null {
   return computer && game.mover !== computer && last ? last : null;
 }
 
-/** "Game over", with the reason when the Mover had no legal Move. */
-function gameOverText({ stuck, ending }: Game) {
-  if (!stuck) return "Game over";
-  const reason = `Game over — ${NAME[stuck.player]} has no legal Move`;
-  const [p, q] = stuck.points;
-  return ending === "award" ? `${reason} and takes the Region by Points ${p} and ${q}` : reason;
-}
-
 /** The status the canvas shows during play, as lines for the status mirror; an empty line is not shown. */
 export function playingStatus(state: AppState) {
   const { game, computer } = state;
@@ -40,7 +32,7 @@ export function playingStatus(state: AppState) {
     sides: `${label(left)} vs ${label(right)}`,
     turn:
       game.outcome !== "in-progress"
-        ? gameOverText(game)
+        ? ""
         : computer
           ? `Your move (${NAME[game.mover]})`
           : `${NAME[game.mover]} to move`,
@@ -56,7 +48,7 @@ const BOX = { y: 12, height: 36, pad: 10 };
 
 /**
  * Draws the header and score bar over the Board: each Player's name on their side in their colour, the Mover's
- * boxed, the Computer's last Move under its name, and the Menu button in the top centre, which it returns.
+ * boxed, the Computer's last Move under its name, and during play the Menu button in the top centre, which it returns.
  */
 export function drawPlaying(ctx: CanvasRenderingContext2D, measure: Measure, width: number, height: number, state: AppState) {
   const { game } = state;
@@ -93,6 +85,8 @@ export function drawPlaying(ctx: CanvasRenderingContext2D, measure: Measure, wid
   const share = (p: Player) => ({ fraction: game.scores[p], colour: FILL[p], label: percent(game.scores[p]) });
   drawScoreBar(ctx, { x: 0, y: height - BAR_HEIGHT, width, height: BAR_HEIGHT }, share(left), share(right));
 
-  drawWidgets(ctx, texts, [menu]);
-  return [menu];
+  // Game Over has its own button back to the Start Screen.
+  const buttons = game.outcome === "in-progress" ? [menu] : [];
+  drawWidgets(ctx, texts, buttons);
+  return buttons;
 }

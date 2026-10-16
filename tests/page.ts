@@ -84,13 +84,9 @@ export function text(page: Page, selector: string) {
   return page.$eval(selector, (el) => el.textContent?.trim());
 }
 
-export function isVisible(page: Page, selector: string) {
-  return page.$eval(selector, (el) => (el as HTMLElement).offsetParent !== null);
-}
-
 /**
- * The status mirror's showing lines by name: `sides` (left vs right), `turn`, `computer` (its last Move) and
- * `scores` (left first). None show on the Start Screen.
+ * The status mirror's showing lines by name: `sides` (left vs right), `turn`, `computer` (its last Move),
+ * `scores` (left first), and on Game Over `result`, `subtitle` and `reason`. None show on the Start Screen.
  */
 export function status(page: Page): Promise<Record<string, string>> {
   return page.$$eval("#status [data-line]:not([hidden])", (els) =>
