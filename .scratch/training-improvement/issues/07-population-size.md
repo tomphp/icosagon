@@ -1,6 +1,6 @@
 # 07: Bigger Population
 
-Status: ready-for-agent
+Status: done
 
 **Hypothesis:** 24 networks with 6 survivors is too little diversity.
 
@@ -8,5 +8,5 @@ Status: ready-for-agent
 
 **Blocked by:** 05, 06
 
-- [ ] Variants benched at equal games played and recorded
-- [ ] The default updated if a variant wins
+- [x] Variants benched at equal games played and recorded
+- [x] The default updated if a variant wins (none won; stays 24)
