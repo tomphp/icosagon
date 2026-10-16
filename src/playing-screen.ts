@@ -33,9 +33,11 @@ export function playingStatus(state: AppState) {
     turn:
       game.outcome !== "in-progress"
         ? ""
-        : computer
-          ? `Your move (${NAME[game.mover]})`
-          : `${NAME[game.mover]} to move`,
+        : game.mover === computer
+          ? "Computer to move"
+          : computer
+            ? `Your move (${NAME[game.mover]})`
+            : `${NAME[game.mover]} to move`,
     computer: move ? `Computer played ${move.start}→${move.end}` : "",
     scores: `${score(left)}, ${score(right)}`,
   };

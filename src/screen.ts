@@ -40,8 +40,8 @@ export function chooseSettings(state: AppState, changes: Partial<Settings>): App
 /** The Screen a game is shown on: Game over once its outcome is decided. */
 const screenOf = (game: Game): Screen => (game.outcome === "in-progress" ? "playing" : "over");
 
-/** Plays the Computer's Move if it is the Mover. */
-function playComputer(state: AppState, random: Random): AppState {
+/** Plays the Computer's Move if it is the Mover; the app shell calls this after a short wait. */
+export function playComputer(state: AppState, random: Random): AppState {
   const { game, computer, settings } = state;
   if (game.outcome !== "in-progress" || game.mover !== computer) return state;
   const next = applyMove(game, chooseMove(game, settings.strategy, random));
@@ -51,13 +51,13 @@ function playComputer(state: AppState, random: Random): AppState {
 /** Starts a game with the Settings; against the Computer, a coin flip gives it Red or Blue. */
 export function startGame(settings: Settings, random: Random): AppState {
   const computer = settings.opponent === "computer" ? (random() < 0.5 ? "blue" : "red") : null;
-  return playComputer({ screen: "playing", settings, game: createGame(settings.ending), computer, drag: null }, random);
+  return { screen: "playing", settings, game: createGame(settings.ending), computer, drag: null };
 }
 
-/** Plays the Mover's Move, then the Computer's reply. */
-export function makeMove(state: AppState, move: Move, random: Random): AppState {
+/** Plays the Mover's Move. */
+export function makeMove(state: AppState, move: Move): AppState {
   const game = applyMove(state.game, move);
-  return playComputer({ ...state, game, screen: screenOf(game), drag: null }, random);
+  return { ...state, game, screen: screenOf(game), drag: null };
 }
 
 /** Abandons the game and returns to the Start Screen, keeping the Settings. */
@@ -77,6 +77,6 @@ export function dragTo(state: AppState, layout: Layout, start: number, pointer: 
 }
 
 /** Ends the drag: released on a legal end Point it makes that Move, otherwise nothing changes. */
-export function releaseDrag(state: AppState, start: number, end: number | null, random: Random): AppState {
-  return end === null ? { ...state, drag: null } : makeMove(state, { start, end }, random);
+export function releaseDrag(state: AppState, start: number, end: number | null): AppState {
+  return end === null ? { ...state, drag: null } : makeMove(state, { start, end });
 }

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import {
-  canvasBox, canvasImage, colourNear, drag, flashFaded, hasButton, hold, isPressed, launch, moveTo, pillLabels, press, resizeWindow, start, status,
+  canvasBox, canvasImage, colourNear, computerMoved, drag, flashFaded, hasButton, hold, isPressed, launch, moveTo, pillLabels, press, resizeWindow, start, status,
   swipe, text,
 } from "./page.ts";
 
@@ -84,6 +84,7 @@ describe("the Start Screen on the page", () => {
     }
 
     await press(page, "start");
+    await computerMoved(page);
     expect((await status(page)).turn).toMatch(/^Your move/);
   });
 });

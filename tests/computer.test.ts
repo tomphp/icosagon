@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import { chooseMove } from "../src/computer.ts";
 import { applyMove, createGame, type Ending, type Game, type Move, type Player } from "../src/game.ts";
-import { drag, hasButton, isPressed, launch, pillLabels, press, start, status, stubRandom } from "./page.ts";
+import { computerMoved, drag, flashFaded, hasButton, isPressed, launch, pillLabels, press, start, status, stubRandom } from "./page.ts";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -55,11 +55,12 @@ async function openPage(randomValues: number[]) {
 
 /**
  * Opens the page and starts a game against the Random Computer, pressing the other pills first: Start
- * flips the coin with `humanColour`, and the random values follow.
+ * flips the coin with `humanColour`, and the random values follow. Returns once any opening Move by the Computer is made.
  */
 async function openAgainstRandom(humanColour: number, randomValues: number[], ...pills: string[]) {
   const page = await openPage([humanColour, ...randomValues]);
   await start(page, "strategy:random", ...pills);
+  await computerMoved(page);
   return page;
 }
 
@@ -78,8 +79,9 @@ describe("the Opponent on the page", () => {
     expect((await status(page)).turn).toBe("Blue to move");
   });
 
-  it("against the Computer as Red, starts with an empty Board and replies at once to each Move", async () => {
+  it("against the Computer as Red, starts with an empty Board and replies to each Move after a wait", async () => {
     // The Computer, as Blue, answers 0→10 with 5→15.
+    const { game: afterHuman } = script("award", "blue", [[0, 10]]);
     const { game: afterReply, values } = script("award", "blue", [[0, 10], [5, 15]]);
     const page = await openAgainstRandom(HUMAN_RED, values);
 
@@ -89,6 +91,13 @@ describe("the Opponent on the page", () => {
     expect((await status(page)).computer).toBeUndefined();
 
     await drag(page, 0, 10);
+    expect((await status(page)).turn).toBe("Computer to move");
+    await expectScores(page, afterHuman);
+    // A drag during the wait is not a Move.
+    await drag(page, 2, 12);
+    await expectScores(page, afterHuman);
+
+    await computerMoved(page);
     expect((await status(page)).turn).toBe("Your move (Red)");
     expect((await status(page)).computer).toBe("Computer played 5→15");
     await expectScores(page, afterReply);
@@ -107,6 +116,7 @@ describe("the Opponent on the page", () => {
     expect((await status(page)).computer).toBe("Computer played 0→10");
 
     await drag(page, 5, 15);
+    await computerMoved(page);
     expect((await status(page)).turn).toBe("Your move (Blue)");
     expect((await status(page)).computer).toBe("Computer played 2→12");
     await expectScores(page, afterReply, "blue");
@@ -120,6 +130,19 @@ describe("the Opponent on the page", () => {
     expect((await status(page)).turn).toBe("Your move (Red)");
     expect((await status(page)).computer).toBeUndefined();
     await expectScores(page, createGame("award"));
+  });
+
+  it("as Red, waits before opening, and Menu during the wait cancels its Move", async () => {
+    const page = await openPage([HUMAN_BLUE]);
+    await start(page, "strategy:random");
+    expect((await status(page)).turn).toBe("Computer to move");
+    await expectScores(page, createGame("award"), "blue");
+
+    await press(page, "menu");
+    await start(page, "opponent:human");
+    await flashFaded();
+    expect((await status(page)).turn).toBe("Red to move");
+    expect((await status(page)).scores).toBe("Red 0.0%, Blue 0.0%");
   });
 });
 
@@ -145,11 +168,13 @@ describe("Strategy on the page", () => {
     const page = await openPage([HUMAN_BLUE, value, HUMAN_BLUE, value]);
 
     await start(page);
+    await computerMoved(page);
     expect((await status(page)).computer).toBe(`Computer played ${greedy.start}→${greedy.end}`);
     await expectScores(page, applyMove(fresh, greedy), "blue");
 
     await press(page, "menu");
     await start(page, "strategy:random");
+    await computerMoved(page);
     expect((await status(page)).computer).toBe(`Computer played ${random.start}→${random.end}`);
     await expectScores(page, applyMove(fresh, random), "blue");
   });
@@ -165,7 +190,10 @@ describe("a stuck game against the Computer on the page", () => {
     const { game, values } = script("award", "blue", stuckGame);
     const page = await openAgainstRandom(HUMAN_RED, values);
 
-    for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 0)) await drag(page, start, end);
+    for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 0)) {
+      await drag(page, start, end);
+      await computerMoved(page);
+    }
 
     expect((await status(page)).result).toBe("Blue wins");
     expect((await status(page)).subtitle).toBe("Computer wins");
@@ -179,7 +207,10 @@ describe("a stuck game against the Computer on the page", () => {
     const { game, values } = script("award", "red", stuckGame);
     const page = await openAgainstRandom(HUMAN_BLUE, values);
 
-    for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) await drag(page, start, end);
+    for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) {
+      await drag(page, start, end);
+      await computerMoved(page);
+    }
 
     expect((await status(page)).result).toBe("Blue wins");
     expect((await status(page)).subtitle).toBe("You win!");
@@ -192,7 +223,10 @@ describe("a stuck game against the Computer on the page", () => {
     const page = await openAgainstRandom(HUMAN_BLUE, values, "ending:skip");
     expect((await status(page)).sides).toBe("Human (Blue) vs Computer (Red)");
 
-    for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) await drag(page, start, end);
+    for (const [start, end] of stuckGame.filter((_, i) => i % 2 === 1)) {
+      await drag(page, start, end);
+      await computerMoved(page);
+    }
 
     expect((await status(page)).result).toBe("Red wins");
     expect((await status(page)).subtitle).toBe("Computer wins");
@@ -225,6 +259,7 @@ async function playToGameOver({ value, label }: { value: string; label: string }
     // The Human plays some legal Move; applying the Computer's reply checks that it is legal.
     const move = chooseMove(game, "random", () => 0);
     await drag(page, move.start, move.end);
+    await computerMoved(page);
     game = applyMove(game, move);
     if (game.outcome !== "in-progress") break;
     const played = (await status(page)).computer.match(/^Computer played (\d+)→(\d+)$/);

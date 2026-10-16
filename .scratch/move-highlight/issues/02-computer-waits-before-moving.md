@@ -6,10 +6,10 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `playingStatus` test: "Computer to move" while the Computer is the Mover, "Your move (…)" otherwise
-- [ ] Human drags can't start while the Computer is the Mover
-- [ ] In the app, the Computer's reply and its opening Move as Red each land 500ms after the Human's Move or the game's start
-- [ ] Pressing Menu during the wait, then starting a new game, never applies the stale Move
-- [ ] Human vs Human games are unchanged
+- [x] `playingStatus` test: "Computer to move" while the Computer is the Mover, "Your move (…)" otherwise
+- [x] Human drags can't start while the Computer is the Mover
+- [x] In the app, the Computer's reply and its opening Move as Red each land 500ms after the Human's Move or the game's start
+- [x] Pressing Menu during the wait, then starting a new game, never applies the stale Move
+- [x] Human vs Human games are unchanged

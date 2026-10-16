@@ -156,3 +156,8 @@ export async function colourNear(page: Page, p: number) {
 export function flashFaded() {
   return new Promise((done) => setTimeout(done, FLASH_MS + 100));
 }
+
+/** Waits until the Computer is no longer the Mover, so its Move has landed; at once if it isn't the Mover. */
+export async function computerMoved(page: Page) {
+  await page.waitForFunction(() => document.querySelector('#status [data-line="turn"]:not([hidden])')?.textContent !== "Computer to move");
+}

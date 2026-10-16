@@ -1,5 +1,5 @@
 import { effectsOf, FLASH_MS, type Step } from "./effects.ts";
-import { applyMove, createGame, isLegalMove, usedPoints, type Game } from "./game.ts";
+import { isLegalMove, usedPoints, type Game } from "./game.ts";
 import { attachInput } from "./input.ts";
 import { canvasLayout } from "./layout.ts";
 import { syncMirror, syncStatus } from "./mirror.ts";
@@ -7,7 +7,7 @@ import { neuralOptions } from "./model.ts";
 import { drawGameOver, overStatus } from "./over-screen.ts";
 import { drawPlaying, playingStatus } from "./playing-screen.ts";
 import { render } from "./render.ts";
-import { DEFAULT_SETTINGS, dragTo, releaseDrag, startScreen, type AppState } from "./screen.ts";
+import { DEFAULT_SETTINGS, dragTo, playComputer, releaseDrag, startScreen, type AppState } from "./screen.ts";
 import { HOW_TO_PLAY, NAMED_STRATEGIES, startScreenWidgets } from "./start-screen.ts";
 import { BACKGROUND, drawWidgets, measureWith, type Button } from "./widgets.ts";
 
@@ -34,29 +34,22 @@ let state: AppState = startScreen(DEFAULT_SETTINGS);
 let effects: { step: Step; start: number } | null = null;
 let frame = 0;
 
-/** Moves to the next state, starting the effects of any Moves it made. */
+/** Moves to the next state, starting the effects of the Move it made and, if the Computer is now the Mover, its wait. */
 function setState(next: AppState) {
-  // A game started from the Start Screen is new, even if it has as many Moves as the last one.
-  const before = state.screen === "start" ? createGame(next.game.ending) : state.game;
-  if (next.game !== state.game) effects = effectsSince(before, next.game);
+  if (next.game !== state.game) {
+    // A new game has no Moves; otherwise the game moved on by exactly one Move.
+    effects = next.game.moves.length ? { step: effectsOf(state.game, next.game)[0], start: performance.now() } : null;
+    if (next.screen === "playing" && next.game.mover === next.computer) waitForComputer(next.game);
+  }
   state = next;
   update();
 }
 
-/**
- * One step for the Moves since `before`, flashing what each Captured.
- * shortcut: the Human's Move and the Computer's reply land together, so both flash at once; drop when the Computer waits.
- */
-function effectsSince(before: Game, after: Game) {
-  let step: Step | null = null;
-  const flash = [];
-  for (const move of after.moves.slice(before.moves.length)) {
-    const next = applyMove(before, move);
-    step = effectsOf(before, next)[0];
-    flash.push(...step.flash);
-    before = next;
-  }
-  return step && { step: { ...step, flash }, start: performance.now() };
+/** Plays the Computer's Move once the Human's flash has faded, unless the game has been left or replaced since. */
+function waitForComputer(game: Game) {
+  setTimeout(() => {
+    if (state.screen === "playing" && state.game === game) setState(playComputer(state, Math.random));
+  }, FLASH_MS);
 }
 
 function update() {
@@ -83,14 +76,14 @@ function update() {
 }
 
 attachInput(canvas, layout, {
-  canStartAt: (point) => state.screen === "playing" && !usedPoints(state.game).has(point),
+  canStartAt: (point) => state.screen === "playing" && state.game.mover !== state.computer && !usedPoints(state.game).has(point),
   canEndAt: (start, point) => isLegalMove(state.game, { start, end: point }),
   dragMoved(start, pointer, snapped) {
     state = dragTo(state, layout(), start, pointer, snapped);
     update();
   },
   dragReleased(start, end) {
-    setState(releaseDrag(state, start, end, Math.random));
+    setState(releaseDrag(state, start, end));
   },
 });
 
