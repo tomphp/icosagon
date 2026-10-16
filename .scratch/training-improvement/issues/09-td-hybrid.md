@@ -1,6 +1,6 @@
 # 09: TD learning inside Training
 
-Status: ready-for-agent
+Status: done
 
 **Hypothesis:** combining both methods keeps the Population competing across Generations, as ADR 0001 wants, while each network also learns from every position it plays.
 
@@ -10,7 +10,7 @@ Only go ahead if ticket 03 shows gradient training helps. Otherwise set this tic
 
 **Blocked by:** 03
 
-- [ ] Option and flag added; with it off, the same seed still gives the same Model
-- [ ] A test showing that a TD step moves a position's rating towards its target
-- [ ] Benched against the best-so-far result (at equal games played if it changes the cost of a Generation), recorded, and kept or removed
-- [ ] ADR 0001 updated if the option is kept
+- [x] Option and flag added; with it off, the same seed still gives the same Model (checked byte-for-byte; removed again as it lost)
+- [x] A test showing that a TD step moves a position's rating towards its target
+- [x] Benched against the best-so-far result (at equal games played if it changes the cost of a Generation), recorded, and kept or removed
+- [x] ADR 0001 updated if the option is kept (not kept, so unchanged)

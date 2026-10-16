@@ -1,0 +1,47 @@
+{
+  "args": [
+    "--out",
+    ".scratch/training-improvement/results/09-td0.05",
+    "--best",
+    ".scratch/training-improvement/results/06-scripted8-equal-games.json",
+    "--games",
+    "83520",
+    "--td",
+    "0.05"
+  ],
+  "seeds": [
+    {
+      "seed": 1,
+      "margins": {
+        "greedy": -0.2907,
+        "hoarder": -0.0496,
+        "clever-hoarder": -0.0385
+      },
+      "games": 86000,
+      "mean": -0.12626666666666667
+    },
+    {
+      "seed": 2,
+      "margins": {
+        "greedy": 0.1699,
+        "hoarder": -0.1347,
+        "clever-hoarder": -0.1721
+      },
+      "games": 86000,
+      "mean": -0.04563333333333333
+    },
+    {
+      "seed": 3,
+      "margins": {
+        "greedy": 0.2197,
+        "hoarder": -0.161,
+        "clever-hoarder": -0.251
+      },
+      "games": 86000,
+      "mean": -0.0641
+    }
+  ],
+  "mean": -0.07866666666666666,
+  "spread": 0.08063333333333333,
+  "games": 258000
+}
