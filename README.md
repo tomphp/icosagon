@@ -18,6 +18,8 @@ which colour occupies the most area.
 
 ## Implementation
 
+The ideas are all mine, the code is all Claude's.
+
 The initial implementation is a static web-page with a canvas base
 implementation. Connecting dots in a click and drag motion, the line is
 visibile while dragging and the colours are updated, but the turn isn't
