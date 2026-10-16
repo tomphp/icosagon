@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import { chooseMove } from "../src/computer.ts";
 import { applyMove, createGame, type Ending, type Game, type Move, type Player } from "../src/game.ts";
-import { computerMoved, drag, flashFaded, hasButton, isPressed, launch, pillLabels, press, start, status, stubRandom } from "./page.ts";
+import { computerMoved, drag, flashFaded, gameOver, hasButton, isPressed, launch, pillLabels, press, start, status, stubRandom } from "./page.ts";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -194,6 +194,7 @@ describe("a stuck game against the Computer on the page", () => {
       await drag(page, start, end);
       await computerMoved(page);
     }
+    await gameOver(page);
 
     expect((await status(page)).result).toBe("Blue wins");
     expect((await status(page)).subtitle).toBe("Computer wins");
@@ -211,6 +212,7 @@ describe("a stuck game against the Computer on the page", () => {
       await drag(page, start, end);
       await computerMoved(page);
     }
+    await gameOver(page);
 
     expect((await status(page)).result).toBe("Blue wins");
     expect((await status(page)).subtitle).toBe("You win!");

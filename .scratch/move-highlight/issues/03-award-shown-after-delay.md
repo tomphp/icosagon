@@ -10,9 +10,9 @@ The app shell draws whichever step is due, and draws Game Over only once a step 
 
 **Blocked by:** 01 (Captured Regions flash gold)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `effectsOf` test for a 9th Move under Award, checking both steps as described above
-- [ ] In the app, the awarded Region visibly changes colour and flashes 500ms after the 9th Move, with the Scores and Game Over appearing at the same time
-- [ ] The Award delay also happens in Human vs Human games
-- [ ] No change to `applyMove` or how the Award is scored
+- [x] `effectsOf` test for a 9th Move under Award, checking both steps as described above
+- [x] In the app, the awarded Region visibly changes colour and flashes 500ms after the 9th Move, with the Scores and Game Over appearing at the same time
+- [x] The Award delay also happens in Human vs Human games
+- [x] No change to `applyMove` or how the Award is scored

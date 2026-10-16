@@ -30,15 +30,15 @@ let size = { width: 0, height: 0 };
 const layout = () => canvasLayout(size.width, size.height);
 
 let state: AppState = startScreen(DEFAULT_SETTINGS);
-/** The step showing the latest Moves' effects and when it started, or null before a game's first Move. */
-let effects: { step: Step; start: number } | null = null;
+/** The timed steps showing the latest Move's effects and when they started, or null before a game's first Move. */
+let effects: { steps: Step[]; start: number } | null = null;
 let frame = 0;
 
 /** Moves to the next state, starting the effects of the Move it made and, if the Computer is now the Mover, its wait. */
 function setState(next: AppState) {
   if (next.game !== state.game) {
     // A new game has no Moves; otherwise the game moved on by exactly one Move.
-    effects = next.game.moves.length ? { step: effectsOf(state.game, next.game)[0], start: performance.now() } : null;
+    effects = next.game.moves.length ? { steps: effectsOf(state.game, next.game), start: performance.now() } : null;
     if (next.screen === "playing" && next.game.mover === next.computer) waitForComputer(next.game);
   }
   state = next;
@@ -54,8 +54,13 @@ function waitForComputer(game: Game) {
 
 function update() {
   const onStart = state.screen === "start";
+  const age = effects ? performance.now() - effects.start : Infinity;
+  const step = effects?.steps.filter((s) => s.at <= age).at(-1);
+  // Draw the step that is due rather than the game itself, which may already be past an Award still to be shown.
+  const shown = step ? { ...state, game: { ...state.game, regions: step.regions, scores: step.scores } } : state;
+  const over = state.screen === "over" && (step?.over ?? true);
   howToPlay.hidden = !onStart;
-  syncStatus(status, onStart ? {} : { ...playingStatus(state), ...(state.screen === "over" ? overStatus(state) : {}) });
+  syncStatus(status, onStart ? {} : { ...playingStatus(shown), ...(over ? overStatus(state) : {}) });
   fit();
   let buttons: Button[];
   if (onStart) {
@@ -65,12 +70,13 @@ function update() {
     drawWidgets(ctx, screen.texts, screen.buttons);
     buttons = screen.buttons;
   } else {
-    const age = effects ? performance.now() - effects.start : FLASH_MS;
-    const flash = age < FLASH_MS ? { regions: effects!.step.flash, opacity: 1 - age / FLASH_MS } : null;
-    if (flash && !frame) frame = requestAnimationFrame(() => ((frame = 0), update()));
-    render(ctx, layout(), state.game, state.drag, flash);
-    buttons = drawPlaying(ctx, measure, size.width, size.height, state);
-    if (state.screen === "over") buttons.push(...drawGameOver(ctx, measure, size.width, size.height, state));
+    const fading = step ? age - step.at : FLASH_MS;
+    const flash = fading < FLASH_MS ? { regions: step!.flash, opacity: 1 - fading / FLASH_MS } : null;
+    const pending = step !== effects?.steps.at(-1);
+    if ((flash || pending) && !frame) frame = requestAnimationFrame(() => ((frame = 0), update()));
+    render(ctx, layout(), shown.game, state.drag, flash);
+    buttons = drawPlaying(ctx, measure, size.width, size.height, shown);
+    if (over) buttons.push(...drawGameOver(ctx, measure, size.width, size.height, state));
   }
   syncMirror(mirror, buttons, (b) => setState(b.press(state)));
 }

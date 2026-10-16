@@ -38,3 +38,23 @@ describe("the effects of a Move", () => {
     ]);
   });
 });
+
+describe("the effects of a 9th Move under Award", () => {
+  const stuckGame: [number, number][] = [
+    [14, 17], [1, 5], [11, 19], [9, 0], [4, 12], [18, 2], [3, 10], [15, 13], [6, 16],
+  ];
+
+  it("first flash the Move's Captured Regions over the pre-Award Board, then flash the awarded Region with Game Over", () => {
+    const { before, after, move } = lastMove("award", ...stuckGame);
+    const skipped = lastMove("skip", ...stuckGame).after;
+    const awarded = after.regions.filter((region, i) => region.colour !== skipped.regions[i].colour);
+
+    expect(awarded).toHaveLength(1);
+    expect(awarded[0].colour).toBe("blue");
+    expect(skipped.scores.red).toBeCloseTo(0.5915, 4);
+    expect(effectsOf(before, after)).toEqual([
+      { at: 0, regions: skipped.regions, scores: skipped.scores, flash: capturedRegions(before, move), over: false },
+      { at: 500, regions: after.regions, scores: after.scores, flash: awarded, over: true },
+    ]);
+  });
+});

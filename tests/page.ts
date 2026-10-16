@@ -161,3 +161,8 @@ export function flashFaded() {
 export async function computerMoved(page: Page) {
   await page.waitForFunction(() => document.querySelector('#status [data-line="turn"]:not([hidden])')?.textContent !== "Computer to move");
 }
+
+/** Waits until Game Over shows, which under Award is a moment after the 9th Move. */
+export async function gameOver(page: Page) {
+  await page.waitForFunction(() => document.querySelector('#status [data-line="result"]:not([hidden])') !== null);
+}

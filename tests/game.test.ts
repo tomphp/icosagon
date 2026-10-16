@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import {
-  canvasBox, canvasImage, colourNear, computerMoved, drag, flashFaded, hasButton, hold, isPressed, launch, moveTo, pillLabels, press, resizeWindow, start, status,
+  canvasBox, canvasImage, colourNear, computerMoved, drag, flashFaded, gameOver, hasButton, hold, isPressed, launch, moveTo, pillLabels, press, resizeWindow, start, status,
   swipe, text,
 } from "./page.ts";
 
@@ -257,6 +257,10 @@ describe("the Ending on the page", () => {
     await open(page);
 
     for (const [start, end] of stuckGame) await drag(page, start, end);
+
+    // For a moment the Scores are as after the 9th Move, before the Award.
+    expect(await status(page)).toEqual({ sides: "Human (Red) vs Human (Blue)", scores: "Red 59.2%, Blue 40.8%" });
+    await gameOver(page);
 
     expect(await status(page)).toEqual({
       sides: "Human (Red) vs Human (Blue)",
