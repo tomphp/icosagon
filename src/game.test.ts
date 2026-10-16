@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMove, createGame, isLegalMove, previewMove, type Ending, type Game } from "./game.ts";
+import { applyMove, capturedRegions, createGame, isLegalMove, previewMove, type Ending, type Game } from "./game.ts";
 
 describe("a fresh game", () => {
   it("has one uncoloured Region, Red to move and Scores of 0/0", () => {
@@ -141,6 +141,32 @@ describe("crossing Lines", () => {
     expect(colourNear(game, 2)).toBe("red");
     expect(colourNear(game, 8)).toBe("blue");
     expect(colourNear(game, 12)).toBe("blue");
+  });
+});
+
+describe("the Regions a Move Captures", () => {
+  it("are the left sides of the Opponent's Regions it passes through", () => {
+    // Blue's 15→5 has the top half on its left: Red's top right is Captured, Blue's own top left is not.
+    const game = play([0, 10]);
+    const captured = capturedRegions(game, { start: 15, end: 5 });
+
+    expect(captured).toHaveLength(1);
+    const shown = { ...game, regions: captured };
+    expect(colourNear(shown, 2)).toBe("blue");
+    expect(colourNear(shown, 18)).toBeUndefined();
+  });
+
+  it("are none when the Move passes only through the Mover's own Regions", () => {
+    // Red's 3→7 cuts a corner off Red's right half.
+    expect(capturedRegions(play([0, 10], [16, 19]), { start: 3, end: 7 })).toEqual([]);
+  });
+
+  it("on the first Move, are only the left side of the Board", () => {
+    const game = createGame("award");
+    const captured = capturedRegions(game, { start: 0, end: 10 });
+
+    expect(captured).toEqual([applyMove(game, { start: 0, end: 10 }).regions[0]]);
+    expect(captured[0].colour).toBe("red");
   });
 });
 

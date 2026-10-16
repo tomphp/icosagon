@@ -1,4 +1,5 @@
-import { isLegalMove, usedPoints } from "./game.ts";
+import { effectsOf, FLASH_MS, type Step } from "./effects.ts";
+import { applyMove, createGame, isLegalMove, usedPoints, type Game } from "./game.ts";
 import { attachInput } from "./input.ts";
 import { canvasLayout } from "./layout.ts";
 import { syncMirror, syncStatus } from "./mirror.ts";
@@ -29,6 +30,34 @@ let size = { width: 0, height: 0 };
 const layout = () => canvasLayout(size.width, size.height);
 
 let state: AppState = startScreen(DEFAULT_SETTINGS);
+/** The step showing the latest Moves' effects and when it started, or null before a game's first Move. */
+let effects: { step: Step; start: number } | null = null;
+let frame = 0;
+
+/** Moves to the next state, starting the effects of any Moves it made. */
+function setState(next: AppState) {
+  // A game started from the Start Screen is new, even if it has as many Moves as the last one.
+  const before = state.screen === "start" ? createGame(next.game.ending) : state.game;
+  if (next.game !== state.game) effects = effectsSince(before, next.game);
+  state = next;
+  update();
+}
+
+/**
+ * One step for the Moves since `before`, flashing what each Captured.
+ * shortcut: the Human's Move and the Computer's reply land together, so both flash at once; drop when the Computer waits.
+ */
+function effectsSince(before: Game, after: Game) {
+  let step: Step | null = null;
+  const flash = [];
+  for (const move of after.moves.slice(before.moves.length)) {
+    const next = applyMove(before, move);
+    step = effectsOf(before, next)[0];
+    flash.push(...step.flash);
+    before = next;
+  }
+  return step && { step: { ...step, flash }, start: performance.now() };
+}
 
 function update() {
   const onStart = state.screen === "start";
@@ -43,14 +72,14 @@ function update() {
     drawWidgets(ctx, screen.texts, screen.buttons);
     buttons = screen.buttons;
   } else {
-    render(ctx, layout(), state.game, state.drag);
+    const age = effects ? performance.now() - effects.start : FLASH_MS;
+    const flash = age < FLASH_MS ? { regions: effects!.step.flash, opacity: 1 - age / FLASH_MS } : null;
+    if (flash && !frame) frame = requestAnimationFrame(() => ((frame = 0), update()));
+    render(ctx, layout(), state.game, state.drag, flash);
     buttons = drawPlaying(ctx, measure, size.width, size.height, state);
     if (state.screen === "over") buttons.push(...drawGameOver(ctx, measure, size.width, size.height, state));
   }
-  syncMirror(mirror, buttons, (b) => {
-    state = b.press(state);
-    update();
-  });
+  syncMirror(mirror, buttons, (b) => setState(b.press(state)));
 }
 
 attachInput(canvas, layout, {
@@ -61,8 +90,7 @@ attachInput(canvas, layout, {
     update();
   },
   dragReleased(start, end) {
-    state = releaseDrag(state, start, end, Math.random);
-    update();
+    setState(releaseDrag(state, start, end, Math.random));
   },
 });
 

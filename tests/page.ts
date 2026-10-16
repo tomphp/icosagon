@@ -1,4 +1,5 @@
 import puppeteer, { type Browser, type Page } from "puppeteer-core";
+import { FLASH_MS } from "../src/effects.ts";
 import { canvasLayout, pointOnScreen as pointOnCanvas } from "../src/layout.ts";
 
 export async function launch(): Promise<Browser> {
@@ -149,4 +150,9 @@ export async function colourNear(page: Page, p: number) {
     },
     spot,
   );
+}
+
+/** Waits until the last Move's gold flash has faded, so the canvas shows plain colours again. */
+export function flashFaded() {
+  return new Promise((done) => setTimeout(done, FLASH_MS + 100));
 }

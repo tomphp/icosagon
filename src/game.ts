@@ -104,6 +104,17 @@ export function previewMove(game: Game, move: Move): Region[] {
   return splitRegions(game, move);
 }
 
+/** The Regions the Move would Capture: the left sides of the Regions it Splits that weren't the Mover's. */
+export function capturedRegions(game: Game, move: Move): Region[] {
+  assertLegal(game, move);
+  const a = pointPosition(move.start);
+  const b = pointPosition(move.end);
+  return game.regions.flatMap((region): Region[] => {
+    const halves = region.colour === game.mover ? null : splitPolygon(region.polygon, a, b);
+    return halves ? [{ polygon: halves.left, colour: game.mover }] : [];
+  });
+}
+
 function isAdjacent(p: number, q: number) {
   const gap = Math.abs(p - q);
   return gap === 1 || gap === POINT_COUNT - 1;

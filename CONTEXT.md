@@ -41,6 +41,10 @@ The Player making the current Move. The other Player is the **Opponent**.
 **Split**:
 What a Line does to each Region it passes through: it cuts the Region in two. The **left side** is the half on the left when looking from the Line's start Point to its end Point. The left side becomes the Mover's colour; the right side keeps its prior colour (or becomes the Opponent's colour if it had none).
 
+**Captured**:
+A Region is Captured by a Move when the Move changes it to the Mover's colour: a left side that was the Opponent's or uncoloured. A left side of the Mover's own Region is not Captured.
+_Avoid_: Won, gained, taken
+
 **Game over**:
 The game ends after the 10th Move, or after the 9th if the only two unused Points left are adjacent. What happens in the second case depends on the Ending.
 

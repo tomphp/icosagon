@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import type { Browser, Page } from "puppeteer-core";
 import {
-  canvasBox, canvasImage, colourNear, drag, hasButton, hold, isPressed, launch, moveTo, pillLabels, press, resizeWindow, start, status,
+  canvasBox, canvasImage, colourNear, drag, flashFaded, hasButton, hold, isPressed, launch, moveTo, pillLabels, press, resizeWindow, start, status,
   swipe, text,
 } from "./page.ts";
 
@@ -186,6 +186,7 @@ describe("invalid drags on the page", () => {
 
     await drag(page, 0, 10);
     await expectState("Blue to move", "Red 50.0%", "Blue 50.0%");
+    await flashFaded();
 
     const board = await canvasImage(page);
 
@@ -236,6 +237,7 @@ describe("predicting a drag on the page", () => {
 
     // Blue aims 5→15 and would take the bottom half: only the bottom-right quarter changes colour.
     await drag(page, 0, 10);
+    await flashFaded();
     await hold(page, 5, "centre");
     expect(await coloursNear(page, [3, 7, 13, 17])).toEqual([RED, PALE_BLUE, BLUE, BLUE]);
     await page.mouse.up();

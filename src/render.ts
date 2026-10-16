@@ -12,13 +12,20 @@ export interface DragView {
   preview: Region[] | null;
 }
 
+/** Regions to flash gold, drawn at an opacity from 1 down to 0 as the flash fades. */
+export interface Flash {
+  regions: Region[];
+  opacity: number;
+}
+
 export const FILL: Record<Player, string> = { red: "#e5484d", blue: "#3e63dd" };
 /** FILL mixed 45% toward white, for the Regions a predicted Move would recolour. */
 const PALE: Record<Player, string> = { red: "#f19a9d", blue: "#94a9ec" };
 const UNCOLOURED = "#f1f1f1";
+const GOLD = { fill: "#ffd700", border: "#b8860b" };
 const POINT_RADIUS = 6;
 
-export function render(ctx: CanvasRenderingContext2D, layout: Layout, game: Game, drag: DragView | null) {
+export function render(ctx: CanvasRenderingContext2D, layout: Layout, game: Game, drag: DragView | null, flash: Flash | null = null) {
   // Clear every backing pixel; the layout is in CSS pixels, scaled to the device by the context's transform.
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -31,6 +38,17 @@ export function render(ctx: CanvasRenderingContext2D, layout: Layout, game: Game
   }
   if (predicting) {
     for (const piece of recoloured(game.regions, drag!.preview!)) fillRegion(ctx, layout, piece, PALE[piece.colour!]);
+  }
+
+  if (flash) {
+    ctx.globalAlpha = flash.opacity;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = GOLD.border;
+    for (const region of flash.regions) {
+      fillRegion(ctx, layout, region, GOLD.fill);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   }
 
   ctx.lineWidth = 2;
