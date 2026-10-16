@@ -176,9 +176,13 @@ export function isLegalMove(game: Game, move: Move): boolean {
 /** Every legal Move, counting each direction of a Line separately. */
 export function legalMoves(game: Game): Move[] {
   const moves: Move[] = [];
+  if (game.outcome !== "in-progress") return moves;
+  // isLegalMove's rules, with the used Points found once rather than for each of the 400 pairs.
+  const used = usedPoints(game);
   for (let start = 0; start < POINT_COUNT; start++) {
+    if (used.has(start)) continue;
     for (let end = 0; end < POINT_COUNT; end++) {
-      if (isLegalMove(game, { start, end })) moves.push({ start, end });
+      if (start !== end && !isAdjacent(start, end) && !used.has(end)) moves.push({ start, end });
     }
   }
   return moves;

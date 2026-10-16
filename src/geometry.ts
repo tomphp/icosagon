@@ -5,11 +5,13 @@ export interface Vec {
 
 export const POINT_COUNT = 20;
 
-/** Point i on the unit Board: 0 at the top, increasing clockwise on screen (y grows downwards). */
-export function pointPosition(i: number): Vec {
+const POINTS: Vec[] = Array.from({ length: POINT_COUNT }, (_, i) => {
   const angle = ((-90 + i * (360 / POINT_COUNT)) * Math.PI) / 180;
   return { x: Math.cos(angle), y: Math.sin(angle) };
-}
+});
+
+/** Point i on the unit Board: 0 at the top, increasing clockwise on screen (y grows downwards). Shared, so don't modify it. */
+export const pointPosition = (i: number): Vec => POINTS[i];
 
 export function boardPolygon(): Vec[] {
   return Array.from({ length: POINT_COUNT }, (_, i) => pointPosition(i));
@@ -60,6 +62,15 @@ function clip(polygon: Vec[], a: Vec, b: Vec, keepLeft: boolean): Vec[] {
  * through the polygon's interior (it misses, or only touches a corner or an edge).
  */
 export function splitPolygon(polygon: Vec[], a: Vec, b: Vec): { left: Vec[]; right: Vec[] } | null {
+  // Most Lines miss most Regions, so clip only when some corner lies clearly on each side.
+  let onLeft = false;
+  let onRight = false;
+  for (const p of polygon) {
+    const s = side(a, b, p);
+    if (s < -EPSILON) onLeft = true;
+    else if (s > EPSILON) onRight = true;
+  }
+  if (!onLeft || !onRight) return null;
   const left = clip(polygon, a, b, true);
   const right = clip(polygon, a, b, false);
   if (left.length < 3 || right.length < 3) return null;
